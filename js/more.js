@@ -6,7 +6,10 @@ const More = {
     const inbox = (await DB.getAll('inbox')).filter(i => (i.status || 'inbox') === 'inbox');
     const link = (view, icon, title, sub, badge = '') => Nav.views[view] ? UI.row({ icon, title, sub, act: 'go', data: { view }, right: `${badge}<i class="ph ph-caret-right row-caret"></i>` }) : '';
     const last = App.settings.lastBackupAt;
-    return `${UI.header('More', { back: false })}
+    // Until your private-data file has been added, a shortcut to it sits at the top.
+    const setup = !App.settings.profileVersion ? `<button class="banner info" data-act="addPrivate"><i class="ph ph-user-circle-plus lead"></i>
+      <span><b>Add your private data</b> — one file: publications, videos, LinkedIn and research ideas</span></button>` : '';
+    return `${UI.header('More', { back: false })}${setup}
       <div class="list">
         ${link('inbox', 'ph-tray', 'Inbox', 'Quick captures to triage any time', inbox.length ? `<span class="badge">${inbox.length}</span>` : '')}
         ${link('search', 'ph-magnifying-glass', 'Search', 'Tasks, ideas, cards, logs and notes')}
@@ -34,6 +37,33 @@ const More = {
         ${link('backup', 'ph-download-simple', 'Backup', last ? `Last export ${U.relDay(U.dateStr(new Date(last)))}` : 'Never exported yet')}
       </div>
       <p class="muted tiny" style="text-align:center;margin-top:10px">All data stays on this device. No account, no server.</p>`;
+  },
+
+  // One file, one tap: your private-data file (publications, videos, LinkedIn, research ideas),
+  // a merge file, or a research-ideas Markdown file. Nothing you already have is replaced.
+  async addPrivateFile() {
+    const file = await U.pickFile('.json,.md,.markdown,.txt,application/json,text/markdown,text/plain');
+    if (!file) return;
+    try {
+      const text = await U.readFileText(file);
+      const lines = [];
+      if (/^\s*\{/.test(text)) {
+        const data = JSON.parse(text);
+        const r = await DB.mergeData(text);
+        lines.push(`${r.added + r.updated} item${r.added + r.updated === 1 ? '' : 's'} added (publications, videos, LinkedIn…)${r.skipped ? `, ${r.skipped} already in the app` : ''}`);
+        if (data.ideasMarkdown) {
+          const s = await Research.importText(data.ideasMarkdown, file.name, { quiet: true });
+          if (s) lines.push(`${s.added} research idea${s.added === 1 ? '' : 's'} added${s.skipped ? `, ${s.skipped} already there` : ''}${s.failed.length ? ` · ${s.failed.length} could not be read` : ''}`);
+        }
+        if (data._profileVersion) { App.settings.profileVersion = data._profileVersion; await App.saveSettings(); }
+      } else {
+        const s = await Research.importText(text, file.name, { quiet: true });
+        if (!s) throw new Error('This file has no Otter data or research ideas in it. Nothing was changed.');
+        lines.push(`${s.added} research idea${s.added === 1 ? '' : 's'} added${s.skipped ? `, ${s.skipped} already there` : ''}`);
+      }
+      await App.changed({ celebrate: false });
+      await UI.confirm(lines.join('. ') + '. Your own entries were not changed.', { ok: 'Great', cancel: 'Close', title: 'Done' });
+    } catch (e) { await UI.confirm(e.message, { ok: 'OK', title: 'Could not add this file' }); }
   },
 
   // ---------- inbox ----------
@@ -246,7 +276,7 @@ const More = {
       <div class="card"><h3><i class="ph ph-upload-simple"></i> Import backup</h3>
         <p class="muted small" style="margin:4px 0 10px">Replaces ALL data on this device with the backup. On iPhone, the Files app opens so you can pick the file (iCloud Drive, Downloads…).</p>
         <button class="btn btn-ghost btn-block" data-act="import"><i class="ph ph-upload-simple"></i> Choose a backup file…</button></div>
-      <div class="card"><h3><i class="ph ph-git-merge"></i> Add items from a file</h3>
+      <div class="card"><h3><i class="ph ph-git-merge"></i> Add your private data / items from a file</h3>
         <p class="muted small" style="margin:4px 0 10px">Adds items from an Otter merge file (for example your publications and videos) without replacing anything. Items already in the app are skipped, so it's safe to run twice.</p>
         <button class="btn btn-ghost btn-block" data-act="merge"><i class="ph ph-git-merge"></i> Choose a merge file…</button></div>
       <div class="card flat"><h3>Erase everything</h3><p class="muted small" style="margin:4px 0 10px">Deletes all data on this device. Export first!</p>
@@ -273,15 +303,7 @@ const More = {
           setTimeout(() => location.reload(), 800);
         } catch (e) { await UI.confirm(e.message, { ok: 'OK', title: 'Import failed' }); }
       },
-      merge: async () => {
-        const file = await U.pickFile('.json,application/json,text/plain');
-        if (!file) return;
-        try {
-          const r = await DB.mergeData(await U.readFileText(file));
-          await App.changed({ celebrate: false });
-          await UI.confirm(`${r.added} item${r.added === 1 ? '' : 's'} added${r.skipped ? `, ${r.skipped} already in the app (left unchanged)` : ''}.`, { ok: 'OK', cancel: 'Close', title: 'Merged' });
-        } catch (e) { await UI.confirm(e.message, { ok: 'OK', title: 'Could not merge' }); }
-      },
+      merge: () => More.addPrivateFile(),
       erase: async () => {
         if (!(await UI.confirm('Erase ALL data on this device?', { ok: 'Continue', danger: true }))) return;
         if (!(await UI.confirm('Really erase everything? Your streaks, plans and ideas will be gone unless you have a backup.', { ok: 'Erase everything', danger: true, title: 'Last check' }))) return;
@@ -351,7 +373,7 @@ const More = {
 };
 window.More = More;
 
-Nav.register('more', { tab: 'more', render: () => More.renderHub(), actions: () => ({ go: (el) => Nav.go(el.dataset.view) }) });
+Nav.register('more', { tab: 'more', render: () => More.renderHub(), actions: () => ({ go: (el) => Nav.go(el.dataset.view), addPrivate: () => More.addPrivateFile() }) });
 Nav.register('inbox', { tab: 'more', render: (p) => More.renderInbox(p), actions: (p) => More.inboxActions(p) });
 Nav.register('settings', { tab: 'more', render: () => More.renderSettings(), actions: () => More.settingsActions() });
 Nav.register('backup', { tab: 'more', render: () => More.renderBackup(), actions: () => More.backupActions() });

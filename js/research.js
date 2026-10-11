@@ -77,12 +77,22 @@ const Research = {
     ideas.push(idea);
   },
   async importFile() {
-    const file = await U.pickFile('.md,.markdown,.txt,text/markdown,text/plain');
+    const file = await U.pickFile('.md,.markdown,.txt,.json,text/markdown,text/plain,application/json');
     if (!file) return;
-    const text = await U.readFileText(file);
+    let text = await U.readFileText(file);
+    // Your combined private-data file also works here: it carries the ideas Markdown inside it.
+    if (/^\s*\{/.test(text)) { try { text = JSON.parse(text).ideasMarkdown || ''; } catch (e) { text = ''; } }
+    return Research.importText(text, file.name);
+  },
+  // Parses ideas Markdown into your local data (no duplicates; your notes and edits are never overwritten).
+  async importText(text, fileName, { quiet = false } = {}) {
+    const file = { name: fileName };
     const s = App.settings;
     const { ideas, failed, partial } = Research.parse(text, s.research.specialties);
-    if (!ideas.length && !failed.length) { await UI.confirm('No idea entries were found in this file. Entries must start with a label like **[List 2 · #6]**.', { ok: 'OK', title: 'Nothing to import' }); return; }
+    if (!ideas.length && !failed.length) {
+      if (!quiet) await UI.confirm('No idea entries were found in this file. Entries must start with a label like **[List 2 · #6]**.', { ok: 'OK', title: 'Nothing to import' });
+      return null;
+    }
     const existing = await Repo.all('idea');
     const have = new Set(existing.map(Research.key));
     const fresh = ideas.filter(i => !have.has(Research.key(i)));
@@ -95,7 +105,8 @@ const Research = {
     const summary = { file: file.name, date: new Date().toISOString(), parsed: ideas.length, added: fresh.length, skipped: ideas.length - fresh.length, per, failed, partial };
     s.research.lastImport = summary; await App.saveSettings();
     await App.changed({ celebrate: false });
-    Research.showImportSummary(summary);
+    if (!quiet) Research.showImportSummary(summary);
+    return summary;
   },
   showImportSummary(sum) {
     UI.sheet({ title: 'Import summary', tall: true, html: `
