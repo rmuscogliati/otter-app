@@ -13,7 +13,7 @@ const Health = {
   SYNC_TIME: '23:15', // when the Shortcut automation runs; the Today reminder appears after this
 
   // ---------- reading the Shortcut's text ----------
-  // "8,234" → 8234 · "77.4" → 77.4 · "77,4" → 77.4
+  // "8,234" → 8234 · "64.5" → 64.5 · "64,5" → 64.5
   num(s) {
     const m = String(s).match(/-?\d[\d,]*(?:\.\d+)?/);
     if (!m) return null;
