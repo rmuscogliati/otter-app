@@ -1,0 +1,30 @@
+# ---- PRIVATE: never upload ----
+# Unpublished research ideas (imported on the device only, through the app's file picker)
+research-ideas.md
+*research-ideas*
+*research*ideas*.md
+private-research/
+# App backups contain everything, including the research ideas
+otter-backup*.json
+*backup*.json
+*backups*/
+*backup*/
+backups/
+
+# ---- not needed by the website ----
+server.js
+profile-data.json
+CHECKLIST.md
+HOW-TO-INSTALL.md
+node_modules/
+.claude/
+*.log
+.DS_Store
+Thumbs.db
+
+# Icon font folder: only the two CSS files and two fonts the app uses
+css/phosphor/*
+!css/phosphor/regular.css
+!css/phosphor/fill.css
+!css/phosphor/Phosphor.woff2
+!css/phosphor/Phosphor-Fill.woff2

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Otter</title>
+  <meta name="description" content="Personal productivity app with streaks and an otter. All data stays on this device.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Otter">
+  <meta name="theme-color" content="#F6F3EE" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15110E" media="(prefers-color-scheme: dark)">
+  <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/phosphor/regular.css">
+  <link rel="stylesheet" href="css/phosphor/fill.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <div id="timer-bar"></div>
+    <main id="view" aria-live="polite">
+      <div class="empty"><i class="ph ph-hourglass"></i><p>Loading…</p></div>
+    </main>
+  </div>
+
+  <nav id="area-strip" aria-label="Life areas"></nav>
+  <button id="fab" aria-label="Add"><i class="ph ph-plus"></i></button>
+  <nav id="tabbar" aria-label="Main">
+    <button data-tab="today"><i class="ph ph-sun"></i><span>Today</span></button>
+    <button data-tab="plan"><i class="ph ph-calendar-dots"></i><span>Plan</span></button>
+    <button data-tab="boards"><i class="ph ph-kanban"></i><span>Boards</span></button>
+    <button data-tab="review"><i class="ph ph-clipboard-text"></i><span>Review</span></button>
+    <button data-tab="more"><i class="ph ph-dots-three-outline"></i><span>More</span></button>
+  </nav>
+
+  <div id="sheet-host"></div>
+  <div id="celebrate-host"></div>
+  <div id="toast-host" aria-live="polite"></div>
+
+  <!-- core -->
+  <script src="js/util.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/defaults.js"></script>
+  <script src="js/migrate.js"></script>
+  <script src="js/days.js"></script>
+  <script src="js/streaks.js"></script>
+  <script src="js/mascots.js"></script>
+  <script src="js/otter.js"></script>
+  <!-- App starts on DOMContentLoaded, after every screen below has registered itself -->
+  <script src="js/app.js"></script>
+  <!-- screens -->
+  <script src="js/task-editor.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/today.js"></script>
+  <script src="js/areas.js"></script>
+  <script src="js/plan.js"></script>
+  <script src="js/boards.js"></script>
+  <script src="js/logs.js"></script>
+  <script src="js/research.js"></script>
+  <script src="js/gym.js"></script>
+  <script src="js/areatools.js"></script>
+  <script src="js/wardjobs.js"></script>
+  <script src="js/focus.js"></script>
+  <script src="js/review.js"></script>
+  <script src="js/more.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline support unavailable:', err.message));
+    }
+  </script>
+</body>
+</html>
