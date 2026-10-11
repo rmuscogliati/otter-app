@@ -29,6 +29,7 @@ const More = {
         ${link('streak', 'ph-fire', 'Streak & XP', 'Calendar, pebbles, rule')}
         ${link('timeStats', 'ph-clock', 'Time per area', 'Focus timer and manual entries')}
         ${link('energy', 'ph-battery-medium', 'Energy & sleep', 'Check-ins over time')}
+        ${link('health', 'ph-heartbeat', 'Health sync', 'Steps, food and Forest time from Apple Health')}
         ${link('otterScreen', 'ph-t-shirt', `${U.esc(Otto.name())}'s wardrobe`, 'Unlocked and locked outfits')}
       </div>
       <div class="section-title">App</div>
@@ -36,7 +37,7 @@ const More = {
         ${link('settings', 'ph-gear-six', 'Settings', 'Streak rule, otter, appearance, reminders')}
         ${link('backup', 'ph-download-simple', 'Backup', last ? `Last export ${U.relDay(U.dateStr(new Date(last)))}` : 'Never exported yet')}
       </div>
-      <p class="muted tiny" style="text-align:center;margin-top:10px">All data stays on this device. No account, no server.</p>`;
+      <p class="muted tiny" style="text-align:center;margin-top:10px">All data stays on this device. No account, no server.<br>App version ${U.esc(App.VERSION || '')}</p>`;
   },
 
   // One file, one tap: your private-data file (publications, videos, LinkedIn, research ideas),

@@ -3,7 +3,7 @@
 const Areas = {
   // Tools shown on each area page. A tool only appears once its screen exists (no dead buttons).
   TOOLS: {
-    a1: [['gym', 'Workout log', 'ph-barbell'], ['cardio', 'Runs & cardio', 'ph-sneaker-move'], ['gymTemplates', 'Workout templates', 'ph-list-checks'], ['gymPRs', 'Personal records', 'ph-trophy'], ['gymVolume', 'Weekly volume', 'ph-chart-bar']],
+    a1: [['gym', 'Workout log', 'ph-barbell'], ['cardio', 'Runs & cardio', 'ph-sneaker-move'], ['gymTemplates', 'Workout templates', 'ph-list-checks'], ['gymPRs', 'Personal records', 'ph-trophy'], ['gymVolume', 'Weekly volume', 'ph-chart-bar'], ['health', 'Health sync', 'ph-heartbeat']],
     a2: [['ideas', 'Research ideas', 'ph-lightbulb'], ['researchBoards', 'Projects', 'ph-kanban'], ['reading', 'Reading queue', 'ph-books'], ['guidelines', 'Reporting checklists', 'ph-list-checks'],
       ['opportunities', 'Conferences & grants', 'ph-presentation'], ['publications', 'Publications', 'ph-newspaper'], ['deadlines', 'Deadlines', 'ph-hourglass-medium'], ['waiting', 'Waiting on', 'ph-hand-palm']],
     a3: [['wardJobs', 'Ward jobs', 'ph-list-checks'], ['clinicalQs', 'Clinical questions', 'ph-question'], ['shifts', 'Shift planner', 'ph-calendar-dots'], ['cases', 'Case / procedure log', 'ph-first-aid-kit'],

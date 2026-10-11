@@ -65,12 +65,27 @@
   <script src="js/areatools.js"></script>
   <script src="js/wardjobs.js"></script>
   <script src="js/programme.js"></script>
+  <script src="js/health.js"></script>
   <script src="js/focus.js"></script>
   <script src="js/review.js"></script>
   <script src="js/more.js"></script>
   <script>
     if ('serviceWorker' in navigator && location.protocol === 'https:') {
       navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline support unavailable:', err.message));
+      // Updates: check whenever the app comes back to the screen (iPhone keeps Home Screen apps paused), and when
+      // a new version takes over, reload once so all files are the same version. Never mid-form: if a sheet is
+      // open, the reload waits until you next leave and come back to the app.
+      let hadController = !!navigator.serviceWorker.controller, reloading = false, pending = false;
+      const reload = () => { if (!reloading) { reloading = true; location.reload(); } };
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!hadController) { hadController = true; return; }
+        if (document.querySelector('.sheet-overlay')) pending = true; else reload();
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible') return;
+        if (pending) return reload();
+        navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+      });
     }
   </script>
 </body>

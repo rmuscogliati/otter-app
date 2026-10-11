@@ -1,6 +1,7 @@
 // ======= app.js — start-up, shared state and the always-visible chrome =======
 
 const App = {
+  VERSION: 'v20 · 11 Oct 2026', // shown under More; keep in step with VERSION in sw.js
   settings: null, areas: [], modes: [], templates: [], weekPlans: [], shifts: [], patterns: [],
   streaks: null, cache: {}, date: U.todayStr(), todayMode: 'list',
   openHooks: [], // run once after the first screen appears (energy check-in, reminders, milestones)
