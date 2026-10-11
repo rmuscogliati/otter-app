@@ -6,9 +6,12 @@ const More = {
     const inbox = (await DB.getAll('inbox')).filter(i => (i.status || 'inbox') === 'inbox');
     const link = (view, icon, title, sub, badge = '') => Nav.views[view] ? UI.row({ icon, title, sub, act: 'go', data: { view }, right: `${badge}<i class="ph ph-caret-right row-caret"></i>` }) : '';
     const last = App.settings.lastBackupAt;
-    // Until your private-data file has been added, a shortcut to it sits at the top.
-    const setup = !App.settings.profileVersion ? `<button class="banner info" data-act="addPrivate"><i class="ph ph-user-circle-plus lead"></i>
-      <span><b>Add your private data</b> — one file: publications, videos, LinkedIn and research ideas</span></button>` : '';
+    // Until your private-data file has been added (or while a newer one exists), a shortcut to it sits at the top.
+    const pv = App.settings.profileVersion || '';
+    const setup = !pv ? `<button class="banner info" data-act="addPrivate"><i class="ph ph-user-circle-plus lead"></i>
+      <span><b>Add your private data</b> — one file: publications, videos, LinkedIn and research ideas</span></button>`
+      : pv < App.PRIVATE_FILE_VERSION ? `<button class="banner info" data-act="addPrivate"><i class="ph ph-arrow-circle-down lead"></i>
+      <span><b>New in your private file</b> — add otter-private-data.json again from Google Drive (your MedTwins video ideas). Nothing is added twice.</span></button>` : '';
     return `${UI.header('More', { back: false })}${setup}
       <div class="list">
         ${link('inbox', 'ph-tray', 'Inbox', 'Quick captures to triage any time', inbox.length ? `<span class="badge">${inbox.length}</span>` : '')}

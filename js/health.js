@@ -144,6 +144,7 @@ const Health = {
     return `${UI.header('Health sync')}
       <p class="muted small" style="margin:0 4px 10px">Steps (Apple Watch), food (Lifesum) and Forest focus time come from Apple Health through your "Otter Health" Shortcut. Stored only on this device.</p>
       <button class="btn btn-primary btn-block" data-act="sync"><i class="ph ph-arrows-clockwise"></i> Sync from Health</button>
+      <button class="btn btn-ghost btn-block" data-act="manual"><i class="ph ph-pencil-simple"></i> Type the numbers myself</button>
       <button class="btn btn-ghost btn-block" data-act="setup" style="margin-bottom:12px"><i class="ph ph-question"></i> Set up the Shortcut (once)</button>
       ${summary}
       <div class="section-title">Days</div>
@@ -153,6 +154,8 @@ const Health = {
     return {
       sync: () => Health.sync(),
       setup: () => Health.setupSheet(),
+      // No Shortcut: read the numbers off Health / Lifesum / Forest and type them in.
+      manual: async () => { const d = U.todayStr(); await Health.edit(d, (await Repo.get('health', `hl_${d}`)) || {}, 'Steps from the Health app, food from Lifesum, minutes from Forest. Leave anything blank.'); },
       edit: async (el) => {
         const r = await Repo.get('health', `hl_${el.dataset.date}`);
         if (!r) return;
@@ -163,30 +166,43 @@ const Health = {
     };
   },
   setupSheet() {
-    const step = (t) => `<li style="margin:0 0 8px">${t}</li>`;
+    const li = (t) => `<li style="margin:0 0 8px">${t}</li>`;
+    const part = (title, sub, steps) => `<h3 style="margin-top:14px">${title}</h3>${sub ? `<p class="muted small" style="margin:2px 0 6px">${sub}</p>` : ''}<ol class="small" style="padding-left:20px">${steps.map(li).join('')}</ol>`;
     UI.sheet({ title: 'Set up the "Otter Health" Shortcut', tall: true, html: `
-      <p class="sheet-text">Once, about 10 minutes. Free: it uses Apple's Shortcuts app. Menu names can differ slightly between iOS versions.</p>
-      <h3>1. Let the apps write to Apple Health</h3><ol class="small">
-        ${step('<b>Lifesum</b>: in its settings, open Apple Health (or Connected apps) and allow it to write nutrition and weight.')}
-        ${step('<b>Forest</b>: in its settings, turn on <b>Store Data to HealthKit</b> (focus time is saved as Mindful Minutes).')}
-        ${step('<b>Apple Watch</b>: steps are already in Health.')}</ol>
-      <h3>2. Make the Shortcut</h3><ol class="small">
-        ${step('Open <b>Shortcuts</b>, tap <b>+</b>, name it <b>Otter Health</b>.')}
-        ${step('Add <b>Find Health Samples</b>: Type <b>Steps</b> · filter <b>Start Date is today</b> · Group By <b>Day</b>. Then add <b>Set Variable</b> named <b>Steps</b>.')}
-        ${step('Do the same for <b>Dietary Energy</b> → variable <b>Calories</b>, <b>Protein</b> → <b>Protein</b>, <b>Carbohydrates</b> → <b>Carbs</b>, <b>Total Fat</b> → <b>Fat</b>.')}
-        ${step('Add <b>Find Health Samples</b>: Type <b>Weight</b> · Start Date is today · Sort by Start Date, Latest First · Limit 1. Then <b>Set Variable</b> <b>Weight</b>.')}
-        ${step('Add <b>Find Health Samples</b>: Type <b>Mindful Minutes</b> · Start Date is today. Then <b>Get Details of Health Samples</b> → <b>Duration</b>, then <b>Calculate Statistics</b> → <b>Sum</b>, then <b>Set Variable</b> <b>Forest</b>.')}
-        ${step('Add <b>Date</b> (Current Date), then <b>Format Date</b> → Date Format <b>Custom</b> → <b>yyyy-MM-dd</b>, then <b>Set Variable</b> <b>Day</b>.')}
-        ${step('Add a <b>Text</b> action and type these lines, inserting each variable after the colon:<pre class="small" style="white-space:pre-wrap;margin:6px 0">Otter Health\nDate: Day\nSteps: Steps\nCalories: Calories\nProtein: Protein\nCarbs: Carbs\nFat: Fat\nWeight: Weight\nForest: Forest</pre>')}
-        ${step('Add <b>Copy to Clipboard</b>. Tap ▶ once and <b>allow</b> access to Health when asked.')}</ol>
-      <h3>3. Run it every evening</h3><ol class="small">
-        ${step(`In Shortcuts, tap <b>Automation</b> → <b>+</b> → <b>Time of Day</b> → <b>${Health.SYNC_TIME}</b>, Daily → <b>Run Immediately</b> → choose <b>Otter Health</b>.`)}</ol>
-      <h3>4. Each evening in Otter</h3><ol class="small">
-        ${step(`After ${Health.SYNC_TIME}, tap the <b>Sync from Health</b> reminder on Today (or this screen) → tap <b>Paste</b> → check the numbers → <b>Save</b>.`)}
-        ${step('First time: compare the numbers with the Health app. If one looks wrong (e.g. Forest minutes), correct it before saving and tell Claude so the reader can be adjusted.')}</ol>
-      <button class="btn btn-primary btn-block" data-sheet-close>Done</button>` });
+      <p class="sheet-text">Build it in small pieces and test after the first one. If a step doesn't match what you see, send Claude a screenshot of that screen.
+        <b>No time today?</b> Use <b>Type the numbers myself</b> on the Health sync screen instead: no Shortcut needed.</p>
+      ${part('Part 1 · Test with steps (5 minutes)', 'Open the Shortcuts app (white and pink icon, already on your iPhone).', [
+        'Tap <b>+</b> at the top right. A new, empty shortcut opens.',
+        'Tap its name at the top (e.g. "New Shortcut") → <b>Rename</b> → type <b>Otter Health</b> → Done.',
+        'Tap the <b>Search Actions</b> bar at the bottom, type <b>health samples</b>, tap <b>Find Health Samples</b>.',
+        'In the action that appears, tap the blue word after <b>Type is</b> and choose <b>Steps</b>. (If you only see "Add Filter", tap it first, then set it to <b>Type · is · Steps</b>.)',
+        'Tap <b>Add Filter</b> → change the new line to <b>Start Date · is today</b>.',
+        'Tap the small arrow at the right of the action\'s top line to open more options → <b>Group By</b> → <b>Day</b>.',
+        'Search Actions → type <b>text</b> → tap <b>Text</b>. In its box type <b>Steps: </b> (with the colon and a space), then tap <b>Health Samples</b> in the bar just above the keyboard.',
+        'Search Actions → type <b>copy</b> → tap <b>Copy to Clipboard</b>.',
+        'Tap <b>▶</b> at the bottom right. When asked, allow access to Health (Turn On All, or at least Steps).',
+        'Open Otter → More → <b>Health sync</b> → <b>Sync from Health</b> → <b>Paste</b>. Your steps should appear. ✓'])}
+      ${part('Part 2 · Add food and weight', 'In the same shortcut, add these ABOVE the Text action (drag them up if they land below).', [
+        'Add another <b>Find Health Samples</b> with <b>Type is Dietary Energy</b>, <b>Start Date is today</b>, <b>Group By Day</b>.',
+        'Repeat for <b>Protein</b>, <b>Carbohydrates</b> and <b>Total Fat</b> (same settings).',
+        'Add one for <b>Weight</b>: <b>Start Date is today</b>, no Group By, <b>Sort by Start Date</b>, <b>Latest First</b>, <b>Limit 1</b>.',
+        'In the Text box, start a new line for each: type <b>Calories: </b>, then tap <b>Select Variable</b> (bar above the keyboard) and tap the Dietary Energy action. Same for <b>Protein: </b>, <b>Carbs: </b>, <b>Fat: </b>, <b>Weight: </b>.',
+        'Run ▶ again and sync in Otter. Compare with the Health app (Browse → Nutrition).'])}
+      ${part('Part 3 · Add Forest time (optional)', 'First, in Forest\'s settings, turn on <b>Store Data to HealthKit</b>. In Lifesum, allow it to write nutrition and weight to Health.', [
+        'Add <b>Find Health Samples</b>: <b>Type is Mindful Minutes</b>, <b>Start Date is today</b> (no Group By).',
+        'Add <b>Get Details of Health Samples</b> → tap the blue word → <b>Duration</b>.',
+        'Add <b>Calculate Statistics</b> → <b>Sum</b>.',
+        'In the Text box add a line <b>Forest: </b> and insert the <b>Statistics Result</b> (Select Variable → tap the Calculate Statistics action).',
+        'Run ▶ and sync. If the Forest minutes look wrong, correct them before saving and tell Claude what the Shortcut showed.'])}
+      ${part(`Part 4 · Run it every evening at ${Health.SYNC_TIME}`, '', [
+        'In Shortcuts, tap <b>Automation</b> at the bottom → <b>+</b> (or New Automation).',
+        `Choose <b>Time of Day</b> → set <b>${Health.SYNC_TIME}</b>, <b>Daily</b> → choose <b>Run Immediately</b> → Next.`,
+        'Pick <b>Otter Health</b> → Done.',
+        `From then on, after ${Health.SYNC_TIME} a "Sync from Health" reminder appears on Today: tap it → Sync from Health → Paste → Save.`])}
+      <button class="btn btn-primary btn-block" data-sheet-close style="margin-top:12px">Done</button>` });
   }
 };
+
 window.Health = Health;
 
 Nav.register('health', { tab: 'more', render: () => Health.render(), actions: () => Health.actions() });

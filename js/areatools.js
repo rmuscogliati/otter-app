@@ -296,7 +296,14 @@ const MedTwins = {
   async renderIdeas({ show = 'idea' } = {}) {
     const all = await Repo.all('videoIdea');
     const list = all.filter(i => (i.status || 'idea') === show).sort((a, b) => MedTwins.score(b) - MedTwins.score(a));
-    return `${UI.header('Video idea bank', { right: '<button class="icon-btn" data-act="add" aria-label="Add idea"><i class="ph ph-plus"></i></button>' })}
+    // Your sorted idea list (Shorts, long videos, reactions…) lives as cards in the MedTwins board's first stage.
+    const board = (await DB.getAll('boards')).find(b => b.video);
+    const first = board && (board.stages || [])[0];
+    const onBoard = first ? (await DB.getAll('cards')).filter(c => c.boardId === board.id && c.stageId === first.id && !c.archived).length : 0;
+    const newer = (App.settings.profileVersion || '') < App.PRIVATE_FILE_VERSION;
+    const pointer = onBoard ? `<button class="banner info" data-act="boardIdeas"><i class="ph ph-kanban lead"></i><span><b>${onBoard} video ideas</b> are on the ${U.esc(board.name)} board (${U.esc(first.name)} stage), sorted by format. Tap to open.</span></button>`
+      : newer ? `<button class="banner info" data-act="addPrivate"><i class="ph ph-arrow-circle-down lead"></i><span><b>Your video ideas aren't in the app yet.</b> Tap to add otter-private-data.json from Google Drive.</span></button>` : '';
+    return `${UI.header('Video idea bank', { right: '<button class="icon-btn" data-act="add" aria-label="Add idea"><i class="ph ph-plus"></i></button>' })}${pointer}
       <div class="seg" style="margin-bottom:10px"><button class="${show === 'idea' ? 'on' : ''}" data-act="show" data-v="idea">Ideas (${all.filter(i => (i.status || 'idea') === 'idea').length})</button>
         <button class="${show === 'onBoard' ? 'on' : ''}" data-act="show" data-v="onBoard">On the board (${all.filter(i => i.status === 'onBoard').length})</button>
         <button class="${show === 'parked' ? 'on' : ''}" data-act="show" data-v="parked">Parked</button></div>
@@ -317,6 +324,8 @@ const MedTwins = {
       { name: 'status', type: 'select', label: 'Status', value: i.status || 'idea', options: [{ value: 'idea', label: 'Idea' }, { value: 'onBoard', label: 'On the board' }, { value: 'parked', label: 'Parked' }] }];
     return {
       show: (el) => Nav.go('videoIdeas', { show: el.dataset.v }, { replace: true }),
+      boardIdeas: async () => { const b = (await DB.getAll('boards')).find(x => x.video); if (b) Nav.go('board', { id: b.id, stage: (b.stages || [])[0]?.id }); },
+      addPrivate: () => More.addPrivateFile(),
       add: () => Simple.edit('videoIdea', null, fields, { title: 'video idea', defaults: { source: '' } }),
       edit: async (el) => Simple.edit('videoIdea', await Repo.get('videoIdea', el.dataset.id), fields, { title: 'video idea' }),
       toBoard: async (el) => {
