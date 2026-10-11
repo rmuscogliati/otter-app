@@ -303,7 +303,35 @@ const Migrate = (() => {
     } },
     // Rotation from 12 Oct 2026: work 9–5 Mon–Thu, Friday for German, research and study.
     // The days of the rotation are then planned in advance by Programme.ensureDays().
-    { id: 'v8_rota', run: () => refreshWeekTemplates('pre_2026_10_12', 'before the 9–5 rota') }
+    { id: 'v8_rota', run: () => refreshWeekTemplates('pre_2026_10_12', 'before the 9–5 rota') },
+    { id: 'v9_youtube', run: async () => {
+      // MedTwins blocks on Friday evening and weekend afternoons. Only adds: the block goes into the Friday/
+      // weekend templates and into every future day planned from them. Friday's evening free time and food
+      // log move to after the block, but only where they still have their starting times.
+      const prefix = { 5: 'w5_', 6: 'sat_', 0: 'sun_' };
+      const fit = (list, dw, date) => {
+        if (!list || list.some(t => t.srcId === `${prefix[dw]}yt`)) return false;
+        list.push(Defaults.ytTask(prefix[dw], dw));
+        if (dw === 5) {
+          const free = list.find(t => t.srcId === 'w5_free2' && t.time === '20:15' && t.endTime === '23:30');
+          if (free) free.time = '21:45';
+          const food = date && list.find(t => t.srcId === `pg_food_${date}` && t.time === '20:15');
+          if (food) { food.time = '21:45'; food.endTime = '21:50'; }
+        }
+        list.sort(U.by(t => t.time));
+        return true;
+      };
+      for (const dw of [5, 6, 0]) {
+        const tpl = await DB.get('templates', `tpl_d${dw}`);
+        if (tpl && fit(tpl.tasks, dw)) await Repo.put('templates', tpl);
+      }
+      const today = U.todayStr();
+      for (const d of await DB.getAll('dayInstances')) {
+        const dw = U.dow(d.date);
+        if (d.date <= today || !prefix[dw] || d.templateId !== `tpl_d${dw}`) continue;
+        if (fit(d.baseTasks || d.tasks, dw, d.date)) await DB.put('dayInstances', d);
+      }
+    } }
   ];
 
   async function run() {

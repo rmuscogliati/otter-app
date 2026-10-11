@@ -37,7 +37,7 @@ const Programme = {
     add('weigh', weekend ? '09:30' : '08:00', weekend ? '09:35' : '08:05', 'Morning weigh-in + steps',
       'After the toilet, before food (3–7 times a week; compare 7-day averages). Note yesterday\'s steps: aim first for an 8,000 weekly average, then 8,500–9,000.', 'a1', { optional: true });
     const firstTwo = wk <= 2;
-    add('food', dw === 5 ? '20:15' : weekend ? '21:00' : '23:00', dw === 5 ? '20:20' : weekend ? '21:05' : '23:05', 'Food log',
+    add('food', dw === 5 ? '21:45' : weekend ? '21:00' : '23:00', dw === 5 ? '21:50' : weekend ? '21:05' : '23:05', 'Food log',
       (firstTwo ? 'Weeks 1–2: log what you normally eat and drink, without changing anything yet (include drinks and weekends). ' : 'Log food and drinks, including weekends. ')
       + 'Protein 1.6–2.0 g/kg/day over 3–4 meals; about 30 g fibre; protein + vegetables/fruit + carbohydrate at main meals; measure oils, sauces and snacks; don\'t eat back watch calories.', 'a1', { optional: true });
     // Sundays at the end of each two-week block: the fortnightly reviews.

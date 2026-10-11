@@ -87,6 +87,10 @@ const Defaults = (() => {
     }
     return list.sort(U.by(t => t.time));
   }
+  // MedTwins (YouTube) blocks: Friday evening and weekend afternoons.
+  const YT = 'Next step on the MedTwins board: research, script, film, edit, thumbnail or upload (goal: one video every 2 weeks).';
+  const ytBlock = { 5: ['20:15', '21:45'], 6: ['14:00', '16:00'], 0: ['14:00', '15:45'] };
+  const ytTask = (p, dw) => task(p + 'yt', ytBlock[dw][0], ytBlock[dw][1], 'MedTwins (YouTube)', YT, 'a5', { xp: 30 });
   function fridayTasks(p, gw) {
     return [
       ...germanBlock(p, 5, '09:00'),
@@ -98,13 +102,14 @@ const Defaults = (() => {
       task(p + 'free', '16:45', '18:10', 'Free time', '', null, { info: true, tag: 'downtime' }),
       task(p + 'gym', '18:10', '19:30', gw[0], gw[1], 'a1', { core: true, xp: 30, tag: 'gym', wt: gw[2] }),
       task(p + 'dinner', '19:30', '20:15', 'Dinner and shower', '', null, { info: true, tag: 'downtime' }),
-      task(p + 'free2', '20:15', '23:30', 'Free time', 'Partner, hobbies, projects', null, { info: true, tag: 'downtime' }),
+      ytTask(p, 5),
+      task(p + 'free2', '21:45', '23:30', 'Free time', 'Partner, hobbies, projects', null, { info: true, tag: 'downtime' }),
       task(p + 'wind', '23:30', '24:00', 'Wind down', 'Prepare for bed, sleep at midnight (aim for 7–9 h of sleep)', null, { tag: 'downtime' })
     ].sort(U.by(t => t.time));
   }
   function weekendTasks(dw) {
     const p = dw === 6 ? 'sat_' : 'sun_';
-    const list = germanBlock(p, dw, '10:00');
+    const list = [...germanBlock(p, dw, '10:00'), ytTask(p, dw)];
     if (dw === 6) list.push(task(p + 'gym', '16:00', '16:30', 'Easy bike or walk', 'Especially gentle. ' + CARDIO_EASY, 'a1', { core: true, xp: 30, tag: 'gym', wt: 'wt_cardio' }));
     if (dw === 0) list.push(
       task(p + 'gym', '16:00', '16:45', 'Longer outdoor cardio', CARDIO_LONG, 'a1', { core: true, xp: 30, tag: 'gym', wt: 'wt_cardio' }),
@@ -282,6 +287,6 @@ const Defaults = (() => {
   }
 
   return { task, areas, dayTemplates, weekPlans, modes, boards, guidelines, workoutTemplates, oldWorkoutTemplates, gymWeek, studyResources, wardJobTemplates, otterMessages, areaMessages,
-    reviewSteps, specialties, canDo, portfolioTargets, medtwins, settings, weekdayTasks, weekendTasks };
+    reviewSteps, specialties, ytTask, canDo, portfolioTargets, medtwins, settings, weekdayTasks, weekendTasks };
 })();
 window.Defaults = Defaults;
