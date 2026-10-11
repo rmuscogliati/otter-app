@@ -2,6 +2,7 @@
 
 const Boards = {
   ASSIGNEES: ['Me', 'Twin', 'Both'],
+  FORMATS: ['Short', 'Big words (short)', 'Long video', 'Reaction', 'Big challenge'],
 
   async all() { return (await DB.getAll('boards')).sort(U.by(b => b.order ?? 99)); },
   async cardsOf(boardId) { return (await DB.getAll('cards')).filter(c => c.boardId === boardId && !c.archived); },
@@ -60,17 +61,19 @@ const Boards = {
     return `<button class="kcard ${stuck ? 'stuck' : ''}" style="--c:${a ? a.color : 'var(--line)'}" data-act="card" data-id="${c.id}">
       <div class="t">${U.esc(c.title)}</div>
       ${c.nextAction ? `<div class="na"><i class="ph ph-arrow-right"></i> ${U.esc(c.nextAction)}</div>` : ''}
-      <div class="meta">${due}${board.video && c.assignee ? `<span class="tag info">${U.esc(c.assignee)}</span>` : ''}${c.specialty ? `<span class="tag">${U.esc(c.specialty)}</span>` : ''}
+      <div class="meta">${due}${board.video && c.videoType ? `<span class="tag good">${U.esc(c.videoType)}</span>` : ''}${board.video && c.assignee ? `<span class="tag info">${U.esc(c.assignee)}</span>` : ''}${c.specialty ? `<span class="tag">${U.esc(c.specialty)}</span>` : ''}
         ${stuck ? `<span class="tag warn">stuck ${Boards.daysInStage(c)} days</span>` : `<span class="tag">${Boards.daysInStage(c)}d in stage</span>`}</div></button>`;
   },
-  async renderBoard({ id, stage }) {
+  async renderBoard({ id, stage, fmt }) {
     const b = await DB.get('boards', id);
     if (!b) return `${UI.header('Board')}${UI.empty('Board not found.')}`;
-    const cards = await Boards.cardsOf(id);
+    const allCards = await Boards.cardsOf(id);
+    const cards = b.video && fmt ? allCards.filter(c => (c.videoType || '') === fmt) : allCards;
     const showStage = stage || 'all';
     const stages = (b.stages || []).filter(s => showStage === 'all' || s.id === showStage);
     return `${UI.header(b.name, { right: `<button class="icon-btn" data-act="addCard" aria-label="Add card"><i class="ph ph-plus"></i></button>
         <button class="icon-btn" data-act="menu" aria-label="Board options"><i class="ph ph-dots-three-outline"></i></button>` })}
+      ${b.video ? `<div class="chips" style="margin-bottom:6px"><button class="chip ${!fmt ? 'on' : ''}" data-act="fmt" data-v="">All formats</button>${Boards.FORMATS.map(x => `<button class="chip ${fmt === x ? 'on' : ''}" data-act="fmt" data-v="${U.esc(x)}">${U.esc(x)} (${allCards.filter(c => c.videoType === x).length})</button>`).join('')}</div>` : ''}
       <div class="chips" style="margin-bottom:10px"><button class="chip ${showStage === 'all' ? 'on' : ''}" data-act="filter" data-v="all">All (${cards.length})</button>
         ${(b.stages || []).map(s => `<button class="chip ${showStage === s.id ? 'on' : ''}" data-act="filter" data-v="${s.id}">${U.esc(s.name)} (${cards.filter(c => c.stageId === s.id).length})</button>`).join('')}</div>
       ${stages.map(s => {
@@ -80,9 +83,10 @@ const Boards = {
           ${list.map(c => Boards.cardHtml(b, c)).join('') || (showStage === 'all' ? '' : '<p class="muted small" style="margin:0 4px 8px">No cards.</p>')}</div>`;
       }).join('')}`;
   },
-  boardActions({ id }) {
+  boardActions({ id, stage, fmt }) {
     return {
-      filter: (el) => Nav.go('board', { id, stage: el.dataset.v }, { replace: true }),
+      filter: (el) => Nav.go('board', { id, stage: el.dataset.v, fmt }, { replace: true }),
+      fmt: (el) => Nav.go('board', { id, stage, fmt: el.dataset.v }, { replace: true }),
       card: (el) => Nav.go('card', { id: el.dataset.id }),
       addCard: async () => { const b = await DB.get('boards', id); await Boards.newCardSheet({ boardId: id, areaId: b.areaId }); },
       menu: async () => {
@@ -249,7 +253,7 @@ const Boards = {
           <dt>Next action</dt><dd>${U.esc(c.nextAction || '—')}</dd>
           <dt>Due</dt><dd>${c.due ? `${U.fmtDate(c.due, { year: true })} (${U.relDay(c.due)})` : '—'}</dd>
           <dt>Area</dt><dd>${U.esc((App.areaById(c.areaId) || {}).name || '—')}</dd>
-          ${b.video ? `<dt>Assignee</dt><dd>${U.esc(c.assignee || '—')}</dd><dt>Publish</dt><dd>${c.publishDate ? U.fmtDate(c.publishDate, { year: true }) : '—'}</dd>` : ''}
+          ${b.video ? `<dt>Format</dt><dd>${U.esc(c.videoType || '—')}</dd><dt>Assignee</dt><dd>${U.esc(c.assignee || '—')}</dd><dt>Publish</dt><dd>${c.publishDate ? U.fmtDate(c.publishDate, { year: true }) : '—'}</dd>` : ''}
           ${c.specialty ? `<dt>Specialty</dt><dd>${U.esc(c.specialty)}</dd>` : ''}
           <dt>Notes</dt><dd class="pre">${U.esc(c.notes || '—')}</dd></dl>
           <div class="btn-wrap"><button class="btn btn-small btn-ghost" data-act="edit"><i class="ph ph-pencil-simple"></i> Edit</button>
@@ -337,7 +341,8 @@ const Boards = {
           { name: 'due', type: 'date', label: 'Due date', value: c.due },
           { name: 'areaId', type: 'select', label: 'Area', value: c.areaId || '', options: UI.areaOptions(true) },
           { name: 'notes', type: 'textarea', label: 'Notes', value: c.notes, rows: 4 }];
-        if (b.video) fields.push({ name: 'assignee', type: 'select', label: 'Assignee', value: c.assignee || 'Both', options: Boards.ASSIGNEES.map(a => ({ value: a, label: a })) },
+        if (b.video) fields.push({ name: 'videoType', type: 'select', label: 'Format', value: c.videoType || '', options: [{ value: '', label: '—' }, ...Boards.FORMATS.map(x => ({ value: x, label: x }))] },
+          { name: 'assignee', type: 'select', label: 'Assignee', value: c.assignee || 'Both', options: Boards.ASSIGNEES.map(a => ({ value: a, label: a })) },
           { name: 'publishDate', type: 'date', label: 'Planned publish date (content calendar)', value: c.publishDate || '' });
         if (b.projectType) fields.push({ name: 'specialty', type: 'select', label: 'Specialty', value: c.specialty || '', options: [{ value: '', label: '—' }, ...App.settings.research.specialties.map(s => ({ value: s, label: s }))] });
         const f = await UI.form('Edit card', fields);

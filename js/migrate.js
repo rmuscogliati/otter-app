@@ -261,6 +261,41 @@ const Migrate = (() => {
       // MedTwins: weekly streak (videos can't be daily).
       const a = await DB.get('areas', 'a5');
       if (a && a.streakType !== 'weekly') { a.streakType = 'weekly'; a.target = 1; a.measure = 'tasks'; await Repo.put('areas', a); }
+    } },
+    { id: 'v7_schedule', run: async () => {
+      // New week (11 Oct 2026): accelerated German plan + fitness plan. The previous version of each
+      // weekday/weekend template is kept as a hidden copy, so nothing is lost. Future days that were
+      // created but never touched get the new plan; anything ticked or edited is left alone.
+      const sig = (list) => JSON.stringify((list || []).map(t => [t.title, t.time, t.endTime]).sort());
+      const today = U.todayStr();
+      const days = await DB.getAll('dayInstances');
+      for (const fresh of Defaults.dayTemplates.filter(t => /^tpl_d\d$/.test(t.id))) {
+        const old = await DB.get('templates', fresh.id);
+        if (old && sig(old.tasks) === sig(fresh.tasks)) continue;
+        if (old) await Repo.put('templates', { ...U.clone(old), id: `${old.id}_pre_2026_10_11`, name: `${old.name} (before 11 Oct 2026)`, legacy: true });
+        await Repo.put('templates', { ...(old || {}), ...U.clone(fresh) });
+        const oldSig = old ? sig(old.tasks) : null;
+        for (const d of days) {
+          if (d.date <= today || d.templateId !== fresh.id || (d.completedTaskIds || []).length || sig(d.baseTasks || d.tasks) !== oldSig) continue;
+          if (d.baseTasks) d.baseTasks = U.clone(fresh.tasks); else d.tasks = U.clone(fresh.tasks);
+          await DB.put('dayInstances', d);
+        }
+      }
+      if (!(await DB.get('templates', 'tpl_shortgerman'))) await Repo.put('templates', U.clone(Defaults.dayTemplates.find(t => t.id === 'tpl_shortgerman')));
+      if (!(await DB.get('modes', 'm_shortgerman'))) await Repo.put('modes', U.clone(Defaults.modes.find(m => m.id === 'm_shortgerman')));
+      // Workout templates: replaced only if they still match the previous starting version exactly.
+      const prev = {
+        wt_a: ['Train A — Push', 'Bench press', 'Incline bench press', 'Shoulder press', 'Lateral raises', 'Triceps dips / triceps pushdown', 'Abs'],
+        wt_b: ['Train B — Pull', 'Lat pulldown / pull-up', 'Chin-up / close-grip pulldown', 'Seated row', 'Biceps curls', 'Deadlift', 'Abs'],
+        wt_c: ['Train C — Legs', 'Leg press', 'Lunges', 'Leg extension', 'Leg curls', 'Calf raises'],
+        wt_cardio: ['Cardio — run']
+      };
+      const haveWt = await Repo.all('workoutTemplate');
+      for (const t of Defaults.workoutTemplates) {
+        const cur = haveWt.find(x => x.id === t.id);
+        if (!cur) { await Repo.put('workoutTemplate', U.clone(t)); continue; }
+        if (JSON.stringify([cur.name, ...(cur.exercises || []).map(e => e.name)]) === JSON.stringify(prev[t.id])) await Repo.put('workoutTemplate', { ...cur, ...U.clone(t) });
+      }
     } }
   ];
 

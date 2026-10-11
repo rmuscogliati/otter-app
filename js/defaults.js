@@ -18,51 +18,88 @@ const Defaults = (() => {
     { id: 'a6', name: 'German', color: '#E8A400', mascot: 'macaw', icon: 'ph-translate', order: 6, streakType: 'daily', measure: 'tasks', target: 1, restDays: [], workingDaysOnly: false }
   ].map(a => ({ ...a, pebblesStart: 0, protectWithModes: true, paused: false, archived: false, messages: null }));
 
-  // German rotation (Focused | Reading/listening | Use the language), Monday–Friday.
+  // Accelerated German plan (B1 → B2/C1, speaking and writing first, about 19 h 15 a week):
+  // every day Anki, ChatGPT speaking, writing and LingQ; Goethe lesson Tuesday 18:00–19:30.
+  // Per day: [speaking min, writing min, resources title, resources detail, LingQ title].
   const german = {
-    1: ['Grammar book', 'One small topic', 'LingQ video', '', 'Explain the video aloud', ''],
-    2: ['Goethe coursework', '', 'Short-story book', '', 'Retell the story aloud', ''],
-    3: ['Grammar book: practise', "Recall Monday's rule and practise", 'LingQ News', '', 'Spoken news summary and opinion', ''],
-    4: ['Goethe coursework', '', 'LingQ video', 'Revisit or related topic', 'Write 4–6 sentences', 'Check and correct'],
-    5: ['Goethe catch-up + weekly review', '', 'Short-story book', 'Continue', 'Record a short summary of my week', '']
+    0: [30, 30, 'Goethe exercises + short story', '30 min Goethe exercises, then 25 min short story. Retell the story in your next speaking session.', 'LingQ: favourite content'],
+    1: [25, 25, 'Goethe exercises', '', 'LingQ: news + audio'],
+    2: [20, 20, '', '', 'LingQ: video / audio'],
+    3: [25, 25, 'Grammar book + short story', '20 min grammar book, then 15 min short story. Retell the story in your next speaking session.', 'LingQ: news + audio'],
+    4: [25, 25, 'Grammar book: recurring errors', 'Focus on the errors that keep coming back', 'LingQ: video / audio'],
+    5: [25, 25, 'Goethe exercises: difficult tasks', 'Review the tasks you found hard', 'LingQ: news + audio'],
+    6: [30, 30, 'Goethe exercises: exam skills', 'Rotate the exam skills (reading, listening, writing, speaking)', 'LingQ: video / audio']
   };
-  // Gym week: Push → Pull → Cardio (recovery between upper body and legs) → Legs → Cardio (easy run after legs).
+  const SPEAK = 'ChatGPT Voice: "Speak German with me at B1-B2 level. Ask one question at a time. Let me finish, then correct my three main errors and ask me to repeat the corrected sentences." End by retelling the topic without notes.';
+  const WRITE = 'About half writing, half correcting and rewriting: a short email, an opinion or a Goethe task.';
+  const LINGQ = 'Read and listen to the same item, then give a brief spoken summary.';
+  const ANKI = 'Reviews take 30–45 min. Finished in 30? Use the rest for speaking or correcting writing.';
+  // Fitness plan: 3 gym + 3 easy cardio sessions, Thursday rest. Lifts 12 / 10 / 8, abs 3 × 25 or controlled max.
+  const CARDIO_EASY = 'Easy: effort 3–4/10, full sentences possible. Weeks 1–2: 25 min · weeks 3–4: 30 min · then 35 → 40 → 45 min (1–2+ weeks per stage).';
+  const CARDIO_LONG = 'Easy, longer. Weeks 1–2: 30 min · weeks 3–4: 35 min · then 40 → 45 → 60 min. After 4 consistent weeks, optional: 8 min warm-up, 4 × (1 min at 7/10 + 2 min easy), 5 min cool-down.';
   const gymWeek = {
-    1: ['Gym — Train A (Push)', 'Bench, incline bench, shoulder press, lateral raises, triceps, abs · 12-10-8', 'wt_a'],
-    2: ['Gym — Train B (Pull)', 'Lat pulldown/pull-up, chin-up, seated row, biceps curls, deadlift, abs · 12-10-8', 'wt_b'],
-    3: ['Cardio — run', 'Log distance and time', 'wt_cardio'],
-    4: ['Gym — Train C (Legs)', 'Leg press, lunges, leg extension, leg curls, calf raises · 12-10-8', 'wt_c'],
-    5: ['Cardio — run', 'Easy run after legs day. Log distance and time', 'wt_cardio']
+    1: ['Gym — Train A (Push) + abs', 'Bench, incline bench, shoulder press, lateral raises, dips or triceps pulldown, abs · 12/10/8, 1–2 reps in reserve', 'wt_a'],
+    3: ['Gym — Train B (Pull) + abs', 'Deadlift, lat pulldown or pull-up, chin-up or close-grip pulldown, seated row, biceps curls, abs · 12/10/8', 'wt_b'],
+    5: ['Gym — Train C (Legs)', 'Leg press, lunges (per leg), leg extension, leg curls, calf raises · 12/10/8', 'wt_c']
   };
+  // The German study block (Anki → speaking → break → writing → break → [resources] → LingQ) from a start time.
+  function germanBlock(p, dw, start) {
+    const [sp, wr, res, resDesc, lq] = german[dw];
+    const out = [];
+    let m = U.toMin(start);
+    const add = (key, mins, title, desc, areaId, o) => { out.push(task(p + key, U.fromMin(m), U.fromMin(m + mins), title, desc, areaId, o)); m += mins; };
+    add('anki', 45, 'Anki', ANKI, 'a6', { core: true, xp: 15 });
+    add('speak', sp, `Speaking (${sp} min)`, SPEAK, 'a6', { xp: 15, tag: 'speaking' });
+    add('brk1', dw === 0 || dw === 6 ? 10 : 5, 'Break', '', null, { info: true, tag: 'downtime' });
+    add('write', wr, `Writing (${wr} min)`, WRITE, 'a6', { xp: 15 });
+    add('brk2', dw === 2 ? 5 : 10, 'Break', '', null, { info: true, tag: 'downtime' });
+    if (res) add('res', dw === 0 || dw === 6 ? 55 : 35, res, resDesc, 'a6', { xp: 15 });
+    add('lingq', 20, lq, LINGQ, 'a6', { xp: 10 });
+    return out;
+  }
   function weekdayTasks(dw) {
-    const p = `w${dw}_`, g = german[dw], gw = gymWeek[dw];
-    return [
+    const p = `w${dw}_`, gw = gymWeek[dw];
+    const list = [
       task(p + 'ward', '08:00', '12:00', 'Ward round', 'Write your jobs list after the round', 'a3', { info: true, tag: 'ward' }),
       task(p + 'lunch', '12:00', '13:00', 'Lunch break', '', null, { info: true, tag: 'downtime' }),
       task(p + 'clin', '13:00', '17:40', 'Clinical work', '', 'a3', { info: true }),
-      task(p + 'settle', '17:40', '18:10', 'Settle in', 'Snack, relax, change', 'a1', { optional: true, tag: 'downtime' }),
-      task(p + 'gym', '18:10', '19:30', gw[0], gw[1], 'a1', { core: true, xp: 30, tag: 'gym', wt: gw[2] }),
-      task(p + 'dinner', '19:30', '20:30', 'Dinner and shower', '', null, { info: true, tag: 'downtime' }),
-      task(p + 'anki', '20:30', '20:40', 'Anki', 'Due reviews; attempt the answer before revealing it', 'a6', { core: true, xp: 15 }),
-      task(p + 'focus', '20:40', '21:10', g[0], g[1] || 'Focused learning', 'a6', { xp: 15 }),
-      task(p + 'read', '21:10', '21:30', g[2], g[3] || 'Reading / listening', 'a6'),
-      task(p + 'use', '21:30', '21:40', g[4], g[5] || 'Use the language', 'a6', { tag: 'speaking' }),
-      task(p + 'duo', '21:40', '21:45', 'Duolingo', 'Short session or skip', 'a6', { optional: true, xp: 5 }),
-      task(p + 'free', '21:45', '23:30', 'Free time', 'Partner, hobbies, projects', null, { info: true, tag: 'downtime' }),
       task(p + 'wind', '23:30', '24:00', 'Wind down', 'Prepare for bed, sleep at midnight', null, { tag: 'downtime' })
     ];
+    if (dw === 2) {
+      list.push(
+        task(p + 'settle', '17:40', '18:00', 'Snack and prepare for class', 'Allow travel time if in person', null, { info: true, tag: 'downtime' }),
+        task(p + 'goethe', '18:00', '19:30', 'Goethe lesson', 'Covers the day\'s Goethe / grammar slot', 'a6', { xp: 30, tag: 'speaking' }),
+        task(p + 'dinner', '19:30', '20:00', 'Dinner', '', null, { info: true, tag: 'downtime' }),
+        ...germanBlock(p, dw, '20:00'),
+        task(p + 'gym', '21:55', '22:20', 'Easy walk (Tuesday cardio)', CARDIO_EASY, 'a1', { core: true, xp: 30, tag: 'gym', wt: 'wt_cardio' }),
+        task(p + 'free', '22:20', '23:30', 'Free time', 'Partner, hobbies, projects', null, { info: true, tag: 'downtime' }));
+    } else {
+      list.push(
+        task(p + 'settle', '17:40', '18:10', 'Snack and reset', '', null, { info: true, tag: 'downtime' }),
+        gw ? task(p + 'gym', '18:10', '19:30', gw[0], gw[1], 'a1', { core: true, xp: 30, tag: 'gym', wt: gw[2] })
+          : task(p + 'rest', '18:10', '19:30', 'Rest day', 'No gym or cardio today. Ordinary comfortable movement is enough.', null, { info: true, tag: 'downtime' }),
+        task(p + 'dinner', '19:30', '20:15', 'Dinner and shower', '', null, { info: true, tag: 'downtime' }),
+        ...germanBlock(p, dw, '20:15'),
+        task(p + 'free', '23:00', '23:30', 'Free time', 'Partner, hobbies, projects', null, { info: true, tag: 'downtime' }));
+    }
+    return list.sort(U.by(t => t.time));
   }
   function weekendTasks(dw) {
     const p = dw === 6 ? 'sat_' : 'sun_';
-    const list = [
-      task(p + 'anki', '09:30', '09:45', 'Anki', 'Due reviews', 'a6', { core: true, xp: 15 }),
-      task(p + 'talk', '10:00', '10:45', 'German conversation with tutor/partner', '30–45 min, once across the weekend', 'a6', { optional: true, xp: 20, tag: 'speaking' }),
-      task(p + 'enjoy', '16:00', '16:45', 'Enjoyable German reading or watching', '', 'a6')
-    ];
-    if (dw === 6) list.push(task(p + 'gym', '11:00', '12:30', 'Gym or rest day', 'Optional', 'a1', { optional: true, xp: 30, tag: 'gym' }));
-    if (dw === 0) list.push(task(p + 'review', '18:00', '18:30', 'Weekly review', 'Otto guides you through it', null, { xp: 20, tag: 'review' }));
+    const list = germanBlock(p, dw, '10:00');
+    if (dw === 6) list.push(task(p + 'gym', '16:00', '16:30', 'Easy bike or walk', 'Especially gentle. ' + CARDIO_EASY, 'a1', { core: true, xp: 30, tag: 'gym', wt: 'wt_cardio' }));
+    if (dw === 0) list.push(
+      task(p + 'gym', '16:00', '16:45', 'Longer outdoor cardio', CARDIO_LONG, 'a1', { core: true, xp: 30, tag: 'gym', wt: 'wt_cardio' }),
+      task(p + 'review', '18:00', '18:30', 'Weekly review', 'Otto guides you through it', null, { xp: 20, tag: 'review' }),
+      task(p + 'fitcheck', '18:30', '18:45', 'Fitness check-in', 'Waist; 7-day average of morning weight; weekly steps and cardio minutes; sleep (aim 7–9 h). Every 2 weeks: no change for 2–3 weeks → eat 100–150 kcal/day less OR walk about 1,000 more steps a day (one change at a time); losing over 0.75%/week for 2 weeks → eat 100–200 kcal/day more.', 'a1', { xp: 10 }));
     return list.sort(U.by(t => t.time));
   }
+  // After a difficult shift: Anki stays (aim for 30 min), plus 10 min each of speaking, writing and LingQ.
+  const shortGerman = [
+    task('sg_speak', '21:00', '21:10', 'Speaking (10 min)', SPEAK, 'a6', { xp: 10, tag: 'speaking' }),
+    task('sg_write', '21:10', '21:20', 'Writing (10 min)', WRITE, 'a6', { xp: 10 }),
+    task('sg_lingq', '21:20', '21:30', 'LingQ (10 min)', LINGQ, 'a6', { xp: 10 })
+  ];
 
   const dayTemplates = [
     ...[1, 2, 3, 4, 5].map(dw => ({ id: `tpl_d${dw}`, name: `Normal workday (${U.DOW3[dw]})`, modeId: 'm_normal', tasks: weekdayTasks(dw) })),
@@ -86,7 +123,8 @@ const Defaults = (() => {
       task('min_anki', '20:30', '20:35', '5 min Anki', 'Just the due cards you can manage', 'a6', { core: true, xp: 10 }),
       task('min_german', '20:35', '20:40', '5 min easy German', 'A podcast, a song, anything light', 'a6', { core: true, xp: 10 })] },
     { id: 'tpl_goethe', name: 'Live Goethe class (evening)', modeId: 'm_goethe', tasks: [
-      task('goe_class', '19:00', '21:15', 'Live Goethe class', 'Replaces the evening German study blocks', 'a6', { xp: 30, tag: 'speaking' })] }
+      task('goe_class', '19:00', '21:15', 'Live Goethe class', 'Replaces the evening German study blocks', 'a6', { xp: 30, tag: 'speaking' })] },
+    { id: 'tpl_shortgerman', name: 'Short German (after a difficult shift)', modeId: 'm_shortgerman', tasks: shortGerman }
   ].map(t => ({ ...t, kind: 'day' }));
 
   const weekPlans = [{ id: 'wp_normal', name: 'Normal term', days: { 0: 'tpl_d0', 1: 'tpl_d1', 2: 'tpl_d2', 3: 'tpl_d3', 4: 'tpl_d4', 5: 'tpl_d5', 6: 'tpl_d6' } }];
@@ -97,6 +135,7 @@ const Defaults = (() => {
     { id: 'm_normal', name: 'Normal', action: 'none', templateId: '', areaId: '', protectsStreak: false, isMinimum: false, quiet: false, nonWorking: false, icon: 'ph-sun' },
     { id: 'm_minimum', name: 'Minimum routine', action: 'replace', templateId: 'tpl_minimum', areaId: '', protectsStreak: false, isMinimum: true, quiet: false, nonWorking: false, icon: 'ph-moon' },
     { id: 'm_goethe', name: 'Live Goethe class', action: 'replaceArea', templateId: 'tpl_goethe', areaId: 'a6', protectsStreak: false, isMinimum: false, quiet: false, nonWorking: false, icon: 'ph-chalkboard-teacher' },
+    { id: 'm_shortgerman', name: 'Short German (difficult shift)', action: 'replaceArea', templateId: 'tpl_shortgerman', areaId: 'a6', protectsStreak: false, isMinimum: false, quiet: false, nonWorking: false, icon: 'ph-battery-low' },
     { id: 'm_night', name: 'Night shift / on-call', action: 'replace', templateId: 'tpl_oncall', areaId: '', protectsStreak: true, isMinimum: false, quiet: true, nonWorking: false, icon: 'ph-flashlight' },
     { id: 'm_dayoff', name: 'Day off / weekend', action: 'replace', templateId: 'tpl_dayoff', areaId: '', protectsStreak: false, isMinimum: false, quiet: false, nonWorking: true, icon: 'ph-umbrella' },
     { id: 'm_recovery', name: 'Recovery week', action: 'none', templateId: '', areaId: '', protectsStreak: true, isMinimum: false, quiet: true, nonWorking: false, icon: 'ph-heart' }
@@ -124,14 +163,16 @@ const Defaults = (() => {
     { id: 'gl_care', name: 'CARE (case reports)', items: ['Title', 'Keywords', 'Abstract', 'Introduction', 'Patient information (de-identified)', 'Clinical findings', 'Timeline', 'Diagnostic assessment', 'Therapeutic intervention', 'Follow-up and outcomes', 'Discussion', 'Patient perspective', 'Informed consent'] }
   ];
 
-  // Your routine: every lift 12-10-8 (3 sets, weight up each set); abs 3 × 25 or max.
-  const lift = (name, muscle) => ({ name, muscle, sets: 3, reps: 12, scheme: '12-10-8' });
-  const abs = () => ({ name: 'Abs', muscle: 'Core', sets: 3, reps: 25, scheme: '25-25-25', note: 'or max' });
+  // Your routine: each lift 3 working sets of 12 / 10 / 8 (warm-up sets extra), 1–2 reps in reserve; abs 3 × 25 or controlled max.
+  // Rest 2–3 min on big compound lifts, 60–90 s on accessories. Add the smallest increment after two visits hitting every target.
+  const lift = (name, muscle, note) => ({ name, muscle, sets: 3, reps: 12, scheme: '12-10-8', ...(note ? { note } : {}) });
+  const abs = () => ({ name: 'Abs', muscle: 'Core', sets: 3, reps: 25, scheme: '25-25-25', note: 'or controlled max; stop before technique breaks' });
+  const BIG = 'rest 2–3 min';
   const workoutTemplates = [
-    { id: 'wt_a', name: 'Train A — Push', exercises: [lift('Bench press', 'Chest'), lift('Incline bench press', 'Chest'), lift('Shoulder press', 'Shoulders'), lift('Lateral raises', 'Shoulders'), lift('Triceps dips / triceps pushdown', 'Triceps'), abs()] },
-    { id: 'wt_b', name: 'Train B — Pull', exercises: [lift('Lat pulldown / pull-up', 'Back'), lift('Chin-up / close-grip pulldown', 'Back'), lift('Seated row', 'Back'), lift('Biceps curls', 'Biceps'), lift('Deadlift', 'Hamstrings'), abs()] },
-    { id: 'wt_c', name: 'Train C — Legs', exercises: [lift('Leg press', 'Quads'), lift('Lunges', 'Quads'), lift('Leg extension', 'Quads'), lift('Leg curls', 'Hamstrings'), lift('Calf raises', 'Calves')] },
-    { id: 'wt_cardio', name: 'Cardio — run', cardio: true, exercises: [] }
+    { id: 'wt_a', name: 'Train A — Push', exercises: [lift('Bench press', 'Chest', BIG), lift('Incline bench press', 'Chest', BIG), lift('Shoulder press', 'Shoulders', BIG), lift('Lateral raises', 'Shoulders'), lift('Dips / triceps pulldown', 'Triceps'), abs()] },
+    { id: 'wt_b', name: 'Train B — Pull', exercises: [lift('Deadlift', 'Hamstrings', 'leave about 3 reps in reserve; reset between reps; stop before form slips; rest 2–3 min'), lift('Lat pulldown / pull-up', 'Back', BIG), lift('Chin-up / close-grip pulldown', 'Back'), lift('Seated row', 'Back'), lift('Biceps curls', 'Biceps'), abs()] },
+    { id: 'wt_c', name: 'Train C — Legs', exercises: [lift('Leg press', 'Quads', BIG), lift('Lunges', 'Quads', 'per leg'), lift('Leg extension', 'Quads'), lift('Leg curls', 'Hamstrings'), lift('Calf raises', 'Calves')] },
+    { id: 'wt_cardio', name: 'Cardio — easy', cardio: true, exercises: [] }
   ];
   // The starting templates of earlier versions (a migration removes them only if never edited).
   const oldWorkoutTemplates = [
