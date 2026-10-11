@@ -57,13 +57,16 @@ const Defaults = (() => {
     add('lingq', 20, lq, LINGQ, 'a6', { xp: 10 });
     return out;
   }
+  // Work 09:00–17:00 Monday to Thursday; Friday is a non-clinical day (German first, then research and study).
   function weekdayTasks(dw) {
     const p = `w${dw}_`, gw = gymWeek[dw];
+    if (dw === 5) return fridayTasks(p, gw);
     const list = [
-      task(p + 'ward', '08:00', '12:00', 'Ward round', 'Write your jobs list after the round', 'a3', { info: true, tag: 'ward' }),
+      task(p + 'ward', '09:00', '12:00', 'Ward round', 'Write your jobs list after the round', 'a3', { info: true, tag: 'ward' }),
       task(p + 'lunch', '12:00', '13:00', 'Lunch break', '', null, { info: true, tag: 'downtime' }),
-      task(p + 'clin', '13:00', '17:40', 'Clinical work', '', 'a3', { info: true }),
-      task(p + 'wind', '23:30', '24:00', 'Wind down', 'Prepare for bed, sleep at midnight', null, { tag: 'downtime' })
+      task(p + 'clin', '13:00', '17:00', 'Clinical work', '', 'a3', { info: true }),
+      task(p + 'travel', '17:00', '17:40', 'Travel home', '', null, { info: true, tag: 'downtime' }),
+      task(p + 'wind', '23:30', '24:00', 'Wind down', 'Prepare for bed, sleep at midnight (aim for 7–9 h of sleep)', null, { tag: 'downtime' })
     ];
     if (dw === 2) {
       list.push(
@@ -84,6 +87,21 @@ const Defaults = (() => {
     }
     return list.sort(U.by(t => t.time));
   }
+  function fridayTasks(p, gw) {
+    return [
+      ...germanBlock(p, 5, '09:00'),
+      task(p + 'brk3', '11:45', '12:00', 'Break', '', null, { info: true, tag: 'downtime' }),
+      task(p + 'lunch', '12:00', '13:00', 'Lunch break', '', null, { info: true, tag: 'downtime' }),
+      task(p + 'research', '13:00', '15:00', 'Research block', 'Next action on an active project (Research tab)', 'a2', { xp: 30 }),
+      task(p + 'brk4', '15:00', '15:15', 'Break', '', null, { info: true, tag: 'downtime' }),
+      task(p + 'study', '15:15', '16:45', 'Study block', 'Question bank or topic reviews: Osmosis, Passmed, PasTest, Quesmed, eMRCS, anatomy flashcards', 'a4', { xp: 30 }),
+      task(p + 'free', '16:45', '18:10', 'Free time', '', null, { info: true, tag: 'downtime' }),
+      task(p + 'gym', '18:10', '19:30', gw[0], gw[1], 'a1', { core: true, xp: 30, tag: 'gym', wt: gw[2] }),
+      task(p + 'dinner', '19:30', '20:15', 'Dinner and shower', '', null, { info: true, tag: 'downtime' }),
+      task(p + 'free2', '20:15', '23:30', 'Free time', 'Partner, hobbies, projects', null, { info: true, tag: 'downtime' }),
+      task(p + 'wind', '23:30', '24:00', 'Wind down', 'Prepare for bed, sleep at midnight (aim for 7–9 h of sleep)', null, { tag: 'downtime' })
+    ].sort(U.by(t => t.time));
+  }
   function weekendTasks(dw) {
     const p = dw === 6 ? 'sat_' : 'sun_';
     const list = germanBlock(p, dw, '10:00');
@@ -102,7 +120,8 @@ const Defaults = (() => {
   ];
 
   const dayTemplates = [
-    ...[1, 2, 3, 4, 5].map(dw => ({ id: `tpl_d${dw}`, name: `Normal workday (${U.DOW3[dw]})`, modeId: 'm_normal', tasks: weekdayTasks(dw) })),
+    ...[1, 2, 3, 4].map(dw => ({ id: `tpl_d${dw}`, name: `Workday 9–5 (${U.DOW3[dw]})`, modeId: 'm_normal', tasks: weekdayTasks(dw) })),
+    { id: 'tpl_d5', name: 'Friday (German, research, study)', modeId: 'm_normal', tasks: weekdayTasks(5) },
     { id: 'tpl_d6', name: 'Weekend (Saturday)', modeId: 'm_normal', tasks: weekendTasks(6) },
     { id: 'tpl_d0', name: 'Weekend (Sunday)', modeId: 'm_normal', tasks: weekendTasks(0) },
     { id: 'tpl_dayoff', name: 'Day off', modeId: 'm_dayoff', tasks: [

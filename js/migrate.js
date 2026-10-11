@@ -60,6 +60,26 @@ const Migrate = (() => {
     }
   }
 
+  // Replaces the weekday/weekend templates with the current defaults. The previous version of each one is
+  // kept as a hidden copy, so nothing is lost. Future days that were created but never touched (nothing
+  // ticked, never edited) are removed so they are re-planned from the new week; anything else is left alone.
+  async function refreshWeekTemplates(stamp, label) {
+    const sig = (list) => JSON.stringify((list || []).map(t => [t.title, t.time, t.endTime]).sort());
+    const today = U.todayStr();
+    const days = await DB.getAll('dayInstances');
+    for (const fresh of Defaults.dayTemplates.filter(t => /^tpl_d\d$/.test(t.id))) {
+      const old = await DB.get('templates', fresh.id);
+      if (old && sig(old.tasks) === sig(fresh.tasks)) continue;
+      if (old) await Repo.put('templates', { ...U.clone(old), id: `${old.id}_${stamp}`, name: `${old.name} (${label})`, legacy: true });
+      await Repo.put('templates', { ...(old || {}), ...U.clone(fresh) });
+      const oldSig = old ? sig(old.tasks) : null;
+      for (const d of days) {
+        if (d.date <= today || d.templateId !== fresh.id || d.updatedAt || (d.completedTaskIds || []).length || sig(d.baseTasks || d.tasks) !== oldSig) continue;
+        await DB.delete('dayInstances', d.date);
+      }
+    }
+  }
+
   const STEPS = [
     { id: 'v5_settings', run: async (s) => {
       const days = await DB.getAll('dayInstances');
@@ -263,24 +283,8 @@ const Migrate = (() => {
       if (a && a.streakType !== 'weekly') { a.streakType = 'weekly'; a.target = 1; a.measure = 'tasks'; await Repo.put('areas', a); }
     } },
     { id: 'v7_schedule', run: async () => {
-      // New week (11 Oct 2026): accelerated German plan + fitness plan. The previous version of each
-      // weekday/weekend template is kept as a hidden copy, so nothing is lost. Future days that were
-      // created but never touched get the new plan; anything ticked or edited is left alone.
-      const sig = (list) => JSON.stringify((list || []).map(t => [t.title, t.time, t.endTime]).sort());
-      const today = U.todayStr();
-      const days = await DB.getAll('dayInstances');
-      for (const fresh of Defaults.dayTemplates.filter(t => /^tpl_d\d$/.test(t.id))) {
-        const old = await DB.get('templates', fresh.id);
-        if (old && sig(old.tasks) === sig(fresh.tasks)) continue;
-        if (old) await Repo.put('templates', { ...U.clone(old), id: `${old.id}_pre_2026_10_11`, name: `${old.name} (before 11 Oct 2026)`, legacy: true });
-        await Repo.put('templates', { ...(old || {}), ...U.clone(fresh) });
-        const oldSig = old ? sig(old.tasks) : null;
-        for (const d of days) {
-          if (d.date <= today || d.templateId !== fresh.id || (d.completedTaskIds || []).length || sig(d.baseTasks || d.tasks) !== oldSig) continue;
-          if (d.baseTasks) d.baseTasks = U.clone(fresh.tasks); else d.tasks = U.clone(fresh.tasks);
-          await DB.put('dayInstances', d);
-        }
-      }
+      // New week (11 Oct 2026): accelerated German plan + fitness plan.
+      await refreshWeekTemplates('pre_2026_10_11', 'before 11 Oct 2026');
       if (!(await DB.get('templates', 'tpl_shortgerman'))) await Repo.put('templates', U.clone(Defaults.dayTemplates.find(t => t.id === 'tpl_shortgerman')));
       if (!(await DB.get('modes', 'm_shortgerman'))) await Repo.put('modes', U.clone(Defaults.modes.find(m => m.id === 'm_shortgerman')));
       // Workout templates: replaced only if they still match the previous starting version exactly.
@@ -296,7 +300,10 @@ const Migrate = (() => {
         if (!cur) { await Repo.put('workoutTemplate', U.clone(t)); continue; }
         if (JSON.stringify([cur.name, ...(cur.exercises || []).map(e => e.name)]) === JSON.stringify(prev[t.id])) await Repo.put('workoutTemplate', { ...cur, ...U.clone(t) });
       }
-    } }
+    } },
+    // Rotation from 12 Oct 2026: work 9–5 Mon–Thu, Friday for German, research and study.
+    // The days of the rotation are then planned in advance by Programme.ensureDays().
+    { id: 'v8_rota', run: () => refreshWeekTemplates('pre_2026_10_12', 'before the 9–5 rota') }
   ];
 
   async function run() {

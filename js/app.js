@@ -14,6 +14,7 @@ const App = {
       App.applyPrefs();
       App.bindChrome();
       await App.recompute();
+      if (window.Programme) await Programme.ensureDays(); // plan the days of the current rotation in advance
       App.renderStrip();
       await Nav.go('today', {}, { root: true });
       if (profile) UI.toast(profile, 'ph-user-circle');

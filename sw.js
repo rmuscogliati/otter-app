@@ -4,7 +4,7 @@
 //   if the network is slow or missing, the saved copy is used.
 // - When this file changes (e.g. VERSION below), old caches are deleted on activation.
 // All paths are RELATIVE so the app works under a GitHub Pages sub-path (https://user.github.io/repo/).
-const VERSION = 'v17-2026-10-11';
+const VERSION = 'v18-2026-10-11';
 const CACHE_NAME = `otter-${VERSION}`;
 const APP_FILES = [
   './', './index.html', './manifest.json', './icon.png', './icon-512.png', './apple-touch-icon.png',
@@ -12,7 +12,7 @@ const APP_FILES = [
   './css/phosphor/Phosphor.woff2', './css/phosphor/Phosphor-Fill.woff2',
   './js/util.js', './js/db.js', './js/ui.js', './js/defaults.js', './js/migrate.js', './js/days.js', './js/streaks.js',
   './js/mascots.js', './js/otter.js', './js/app.js', './js/task-editor.js', './js/timeline.js', './js/today.js', './js/areas.js',
-  './js/plan.js', './js/boards.js', './js/logs.js', './js/research.js', './js/gym.js', './js/areatools.js', './js/wardjobs.js', './js/focus.js',
+  './js/plan.js', './js/boards.js', './js/logs.js', './js/research.js', './js/gym.js', './js/areatools.js', './js/wardjobs.js', './js/programme.js', './js/focus.js',
   './js/review.js', './js/more.js'
 ];
 const TIMEOUT_MS = 3500;
