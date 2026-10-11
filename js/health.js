@@ -171,7 +171,7 @@ const Health = {
     UI.sheet({ title: 'Set up the "Otter Health" Shortcut', tall: true, html: `
       <p class="sheet-text">Build it in small pieces and test after the first one. If a step doesn't match what you see, send Claude a screenshot of that screen.
         <b>No time today?</b> Use <b>Type the numbers myself</b> on the Health sync screen instead: no Shortcut needed.</p>
-      ${part('Part 1 · Test with steps (5 minutes)', 'Open the Shortcuts app (white and pink icon, already on your iPhone).', [
+      ${part('Part 1 · Test with steps (5 minutes)', 'Open the Shortcuts app (white and pink icon, already on your iPhone). You build your own shortcut here: Otter itself won’t appear in Shortcuts, and doesn’t need to.', [
         'Tap <b>+</b> at the top right. A new, empty shortcut opens.',
         'Tap its name at the top (e.g. "New Shortcut") → <b>Rename</b> → type <b>Otter Health</b> → Done.',
         'Tap the <b>Search Actions</b> bar at the bottom, type <b>health samples</b>, tap <b>Find Health Samples</b>.',
@@ -197,7 +197,7 @@ const Health = {
       ${part(`Part 4 · Run it every evening at ${Health.SYNC_TIME}`, '', [
         'In Shortcuts, tap <b>Automation</b> at the bottom → <b>+</b> (or New Automation).',
         `Choose <b>Time of Day</b> → set <b>${Health.SYNC_TIME}</b>, <b>Daily</b> → choose <b>Run Immediately</b> → Next.`,
-        'Pick <b>Otter Health</b> → Done.',
+        'Pick the shortcut <b>Otter Health</b> (under My Shortcuts, or type it in the search bar) → Done. <b>The Otter app itself never appears here</b>: iPhones don’t list Home Screen web apps in Shortcuts. That’s normal: the automation only runs your Otter Health shortcut; Otter reads its result when you tap Sync from Health.',
         `From then on, after ${Health.SYNC_TIME} a "Sync from Health" reminder appears on Today: tap it → Sync from Health → Paste → Save.`])}
       <button class="btn btn-primary btn-block" data-sheet-close style="margin-top:12px">Done</button>` });
   }
