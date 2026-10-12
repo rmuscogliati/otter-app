@@ -63,11 +63,12 @@ const Migrate = (() => {
   // Replaces the weekday/weekend templates with the current defaults. The previous version of each one is
   // kept as a hidden copy, so nothing is lost. Future days that were created but never touched (nothing
   // ticked, never edited) are removed so they are re-planned from the new week; anything else is left alone.
-  async function refreshWeekTemplates(stamp, label) {
+  // `only` limits it to some templates (e.g. ['tpl_d5', 'tpl_d6', 'tpl_d0']).
+  async function refreshWeekTemplates(stamp, label, only = null) {
     const sig = (list) => JSON.stringify((list || []).map(t => [t.title, t.time, t.endTime]).sort());
     const today = U.todayStr();
     const days = await DB.getAll('dayInstances');
-    for (const fresh of Defaults.dayTemplates.filter(t => /^tpl_d\d$/.test(t.id))) {
+    for (const fresh of Defaults.dayTemplates.filter(t => /^tpl_d\d$/.test(t.id) && (!only || only.includes(t.id)))) {
       const old = await DB.get('templates', fresh.id);
       if (old && sig(old.tasks) === sig(fresh.tasks)) continue;
       if (old) await Repo.put('templates', { ...U.clone(old), id: `${old.id}_${stamp}`, name: `${old.name} (${label})`, legacy: true });
@@ -396,6 +397,18 @@ const Migrate = (() => {
           const done = d.completedTaskIds || [];
           if ([split(d.tasks, done), split(d.baseTasks, done)].some(Boolean)) await DB.put('dayInstances', d);
         }
+      }
+    } },
+    { id: 'v12_lateStart', run: async () => {
+      // Friday and weekends: up at 9:00 with 1 h 30 to get ready, then 1 h Goethe + 1 h grammar book,
+      // lunch, and the rest of German as before; Friday research and study become 1 h each.
+      // Future Fridays/weekends you never ticked or edited are re-planned (Programme.ensureDays
+      // rebuilds them at start-up); today and any day you changed are left alone.
+      const only = ['tpl_d5', 'tpl_d6', 'tpl_d0'];
+      await refreshWeekTemplates('pre_2026_10_12b', 'before the late-start weekend', only);
+      const today = U.todayStr();
+      for (const d of await DB.getAll('dayInstances')) {
+        if (d.date > today && only.includes(d.templateId) && !d.updatedAt && !(d.completedTaskIds || []).length) await DB.delete('dayInstances', d.date);
       }
     } }
   ];

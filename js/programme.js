@@ -33,8 +33,8 @@ const Programme = {
         + (dw === 0 && wk >= 5 ? ' Optional now (after 4 consistent weeks): 8 min warm-up, 4 × (1 min at 7/10 + 2 min easy), 5 min cool-down. No all-out efforts; skip if your legs need an easy day.' : '');
     }
     // Every day: weigh-in (morning) and food log (evening), both optional.
-    const weekend = dw === 0 || dw === 6;
-    add('weigh', weekend ? '09:30' : '08:00', weekend ? '09:35' : '08:05', 'Morning weigh-in + steps',
+    const weekend = dw === 0 || dw === 6, lateStart = weekend || dw === 5; // up at 9:00 on Friday and weekends
+    add('weigh', lateStart ? '09:30' : '08:00', lateStart ? '09:35' : '08:05', 'Morning weigh-in + steps',
       'After the toilet, before food (3–7 times a week; compare 7-day averages). Note yesterday\'s steps: aim first for an 8,000 weekly average, then 8,500–9,000.', 'a1', { optional: true });
     const firstTwo = wk <= 2;
     add('food', dw === 5 ? '21:45' : weekend ? '21:00' : '23:00', dw === 5 ? '21:50' : weekend ? '21:05' : '23:05', 'Food log',
@@ -49,7 +49,8 @@ const Programme = {
       if (wk === 2) check.desc = 'Set your calorie target from the last 2 weeks of logging: if your weight was stable, eat 250–350 kcal/day less than your logged average; if you are already losing about 0.25–0.5% a week, keep intake steady. ' + check.desc;
       check.desc += ' Next week the cardio stage steps up: repeat this stage instead if recovery is not good.';
     }
-    if (dw === 0 && wk === 2) add('germanreview', '19:00', '19:15', 'Review the German plan', 'Two weeks in: is it crowding out sleep or recovery? Adjust the plan if needed.', 'a6', { xp: 10 });
+    const after = check ? U.toMin(check.endTime) : 20 * 60;
+    if (dw === 0 && wk === 2) add('germanreview', U.fromMin(after), U.fromMin(after + 15), 'Review the German plan', 'Two weeks in: is it crowding out sleep or recovery? Adjust the plan if needed.', 'a6', { xp: 10 });
     // Last day of the period: hand over to the next rotation.
     if (day.date === p.until) add('handover', '17:40', '17:55', `Rotation ends: plan for ${p.next}`, `Send the rota and schedule for ${p.next} so the plan from ${U.fmtDate(U.addDays(p.until, 1))} can be set up.`, null, { xp: 10 });
     day.tasks.sort(U.by(t => t.time));

@@ -22,17 +22,18 @@ const Defaults = (() => {
   // every day Anki, ChatGPT speaking, writing and LingQ; Goethe lesson Tuesday 18:00–19:30.
   // Per day: [speaking min, writing min, resources title, resources detail, LingQ title].
   // Homework blocks per day: [key, title, minutes, note]. Goethe exercises every day except Tuesday
-  // (the lesson); the grammar book only at weekends; the short story on Wednesday and Sunday.
+  // (the lesson); on Friday and at weekends at least 1 h of Goethe and 1 h of grammar book;
+  // the short story on Wednesday and Sunday.
   const STORY = ['story', 'Short story', 15, 'Retell the story in your next speaking session.'];
   const GRAMMAR = (min) => ['gram', 'Grammar book', min, 'Next section; add mistakes that keep coming back to the Mistakes log.'];
   const german = {
-    0: [30, 30, [['res', 'Goethe exercises', 20, ''], GRAMMAR(20), STORY], 'LingQ: favourite content'],
+    0: [30, 30, [['res', 'Goethe exercises', 60, ''], GRAMMAR(60), STORY], 'LingQ: favourite content'],
     1: [25, 25, [['res', 'Goethe exercises', 35, '']], 'LingQ: news + audio'],
     2: [20, 20, [], 'LingQ: video / audio'],
     3: [25, 25, [['res', 'Goethe exercises', 20, ''], STORY], 'LingQ: news + audio'],
     4: [25, 25, [['res', 'Goethe exercises: recurring errors', 35, 'Focus on the mistakes that keep coming back.']], 'LingQ: video / audio'],
-    5: [25, 25, [['res', 'Goethe exercises: difficult tasks', 35, 'Review the tasks you found hard.']], 'LingQ: news + audio'],
-    6: [30, 30, [['res', 'Goethe exercises: exam skills', 30, 'Rotate the exam skills (reading, listening, writing, speaking).'], GRAMMAR(25)], 'LingQ: video / audio']
+    5: [25, 25, [['res', 'Goethe exercises: difficult tasks', 60, 'Review the tasks you found hard.'], GRAMMAR(60)], 'LingQ: news + audio'],
+    6: [30, 30, [['res', 'Goethe exercises: exam skills', 60, 'Rotate the exam skills (reading, listening, writing, speaking).'], GRAMMAR(60)], 'LingQ: video / audio']
   };
   const SPEAK = 'ChatGPT Voice: "Speak German with me at B1-B2 level. Ask one question at a time. Let me finish, then correct my three main errors and ask me to repeat the corrected sentences." End by retelling the topic without notes.';
   const WRITE = 'About half writing, half correcting and rewriting: a short email, an opinion or a Goethe task.';
@@ -47,14 +48,16 @@ const Defaults = (() => {
     5: ['Gym — Train C (Legs)', 'Leg press, lunges (per leg), leg extension, leg curls, calf raises · 12/10/8', 'wt_c']
   };
   // The German study block (Anki → speaking → break → writing → break → [resources] → LingQ) from a start time.
-  function germanBlock(p, dw, start) {
+  // { lunch: true } puts lunch between the homework and the rest (Friday and weekends).
+  function germanBlock(p, dw, start, { lunch = false } = {}) {
     const [sp, wr, homework, lq] = german[dw];
     const out = [];
     let m = U.toMin(start);
     const add = (key, mins, title, desc, areaId, o) => { out.push(task(p + key, U.fromMin(m), U.fromMin(m + mins), title, desc, areaId, o)); m += mins; };
     // The homework (Goethe exercises, grammar book, short story) is the most demanding part: it comes first.
     homework.forEach(([key, title, mins, note], i) => add(key, mins, title, (i === 0 ? `First, while you're fresh. ${note}` : note).trim(), 'a6', { xp: 15 }));
-    if (homework.length) add('brk2', 10, 'Break', '', null, { info: true, tag: 'downtime' });
+    if (lunch) add('lunch', 60, 'Lunch break', '', null, { info: true, tag: 'downtime' });
+    else if (homework.length) add('brk2', 10, 'Break', '', null, { info: true, tag: 'downtime' });
     add('anki', 45, 'Anki', ANKI, 'a6', { core: true, xp: 15 });
     add('speak', sp, `Speaking (${sp} min)`, SPEAK, 'a6', { xp: 15, tag: 'speaking' });
     add('brk1', dw === 0 || dw === 6 ? 10 : 5, 'Break', '', null, { info: true, tag: 'downtime' });
@@ -95,17 +98,18 @@ const Defaults = (() => {
   }
   // MedTwins (YouTube) blocks: Friday evening and weekend afternoons.
   const YT = 'Next step on the MedTwins board: research, script, film, edit, thumbnail or upload (goal: one video every 2 weeks).';
-  const ytBlock = { 5: ['20:15', '21:45'], 6: ['14:00', '16:00'], 0: ['14:00', '15:45'] };
+  const ytBlock = { 5: ['20:15', '21:45'], 6: ['16:45', '18:45'], 0: ['17:15', '19:00'] };
+  // Friday and weekends: wake at 9:00, then 1 h 30 to get ready before anything starts.
+  const getReady = (p) => task(p + 'ready', '09:00', '10:30', 'Get ready and settle in', 'Up at 9:00: shower, breakfast, coffee. Nothing planned until 10:30.', null, { info: true, tag: 'downtime' });
   const ytTask = (p, dw) => task(p + 'yt', ytBlock[dw][0], ytBlock[dw][1], 'MedTwins (YouTube)', YT, 'a5', { xp: 30 });
   function fridayTasks(p, gw) {
     return [
-      ...germanBlock(p, 5, '09:00'),
-      task(p + 'brk3', '11:45', '12:00', 'Break', '', null, { info: true, tag: 'downtime' }),
-      task(p + 'lunch', '12:00', '13:00', 'Lunch break', '', null, { info: true, tag: 'downtime' }),
-      task(p + 'research', '13:00', '15:00', 'Research block', 'Next action on an active project (Research tab)', 'a2', { xp: 30 }),
-      task(p + 'brk4', '15:00', '15:15', 'Break', '', null, { info: true, tag: 'downtime' }),
-      task(p + 'study', '15:15', '16:45', 'Study block', 'Question bank or topic reviews: Osmosis, Passmed, PasTest, Quesmed, eMRCS, anatomy flashcards', 'a4', { xp: 30 }),
-      task(p + 'free', '16:45', '18:10', 'Free time', '', null, { info: true, tag: 'downtime' }),
+      getReady(p),
+      ...germanBlock(p, 5, '10:30', { lunch: true }),
+      task(p + 'brk4', '15:30', '15:45', 'Break', '', null, { info: true, tag: 'downtime' }),
+      task(p + 'research', '15:45', '16:45', 'Research block', 'Next action on an active project (Research tab)', 'a2', { xp: 30 }),
+      task(p + 'study', '16:45', '17:45', 'Study block', 'Question bank or topic reviews: Osmosis, Passmed, PasTest, Quesmed, eMRCS, anatomy flashcards', 'a4', { xp: 30 }),
+      task(p + 'free', '17:45', '18:10', 'Free time', '', null, { info: true, tag: 'downtime' }),
       task(p + 'gym', '18:10', '19:30', gw[0], gw[1], 'a1', { core: true, xp: 30, tag: 'gym', wt: gw[2] }),
       task(p + 'dinner', '19:30', '20:15', 'Dinner and shower', '', null, { info: true, tag: 'downtime' }),
       ytTask(p, 5),
@@ -115,12 +119,12 @@ const Defaults = (() => {
   }
   function weekendTasks(dw) {
     const p = dw === 6 ? 'sat_' : 'sun_';
-    const list = [...germanBlock(p, dw, '10:00'), ytTask(p, dw)];
+    const list = [getReady(p), ...germanBlock(p, dw, '10:30', { lunch: true }), ytTask(p, dw)];
     if (dw === 6) list.push(task(p + 'gym', '16:00', '16:30', 'Easy bike or walk', 'Especially gentle. ' + CARDIO_EASY, 'a1', { core: true, xp: 30, tag: 'gym', wt: 'wt_cardio' }));
     if (dw === 0) list.push(
-      task(p + 'gym', '16:00', '16:45', 'Longer outdoor cardio', CARDIO_LONG, 'a1', { core: true, xp: 30, tag: 'gym', wt: 'wt_cardio' }),
-      task(p + 'review', '18:00', '18:30', 'Weekly review', 'Otto guides you through it', null, { xp: 20, tag: 'review' }),
-      task(p + 'fitcheck', '18:30', '18:45', 'Fitness check-in', 'Waist; 7-day average of morning weight; weekly steps and cardio minutes; sleep (aim 7–9 h). Every 2 weeks: no change for 2–3 weeks → eat 100–150 kcal/day less OR walk about 1,000 more steps a day (one change at a time); losing over 0.75%/week for 2 weeks → eat 100–200 kcal/day more.', 'a1', { xp: 10 }));
+      task(p + 'gym', '16:15', '17:00', 'Longer outdoor cardio', CARDIO_LONG, 'a1', { core: true, xp: 30, tag: 'gym', wt: 'wt_cardio' }),
+      task(p + 'review', '19:15', '19:45', 'Weekly review', 'Otto guides you through it', null, { xp: 20, tag: 'review' }),
+      task(p + 'fitcheck', '19:45', '20:00', 'Fitness check-in', 'Waist; 7-day average of morning weight; weekly steps and cardio minutes; sleep (aim 7–9 h). Every 2 weeks: no change for 2–3 weeks → eat 100–150 kcal/day less OR walk about 1,000 more steps a day (one change at a time); losing over 0.75%/week for 2 weeks → eat 100–200 kcal/day more.', 'a1', { xp: 10 }));
     return list.sort(U.by(t => t.time));
   }
   // After a difficult shift: Anki stays (aim for 30 min), plus 10 min each of speaking, writing and LingQ.
