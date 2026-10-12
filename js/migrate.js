@@ -370,6 +370,33 @@ const Migrate = (() => {
       const swap = { "{streak} days. I'm doing a happy flip!": "{streak} days. I'm doing a happy dance!", "Day complete! I'm doing a backflip.": 'Day complete! Time for a happy splash.' };
       const msgs = s.otter && s.otter.messages;
       if (msgs) for (const k of Object.keys(msgs)) if (Array.isArray(msgs[k])) msgs[k] = msgs[k].map(m => swap[m] || m);
+    } },
+    { id: 'v11_homework', run: async () => {
+      // The one homework block becomes separate blocks in the same time window: Goethe exercises every day
+      // except Tuesday, the grammar book only at weekends, the short story on Wednesday and Sunday.
+      // Only an unticked block still at its planned time is split, so your own changes stay.
+      const today = U.todayStr();
+      const days = await DB.getAll('dayInstances');
+      for (const fresh of Defaults.dayTemplates.filter(t => /^tpl_d\d$/.test(t.id))) {
+        const hw = fresh.tasks.filter(t => /_(res|gram|story)$/.test(t.srcId));
+        if (!hw.length) continue;
+        const start = hw[0].time, end = hw[hw.length - 1].endTime;
+        const split = (list, done) => {
+          const old = (list || []).find(t => t.srcId === hw[0].srcId);
+          if (!old || done.includes(old.id) || old.time !== start || old.endTime !== end) return false;
+          if (list.some(t => hw.slice(1).some(h => h.srcId === t.srcId))) return false;
+          list.splice(list.indexOf(old), 1, ...U.clone(hw));
+          list.sort(U.by(t => t.time));
+          return true;
+        };
+        const tpl = await DB.get('templates', fresh.id);
+        if (tpl && split(tpl.tasks, [])) await Repo.put('templates', tpl);
+        for (const d of days) {
+          if (d.date < today || d.templateId !== fresh.id) continue;
+          const done = d.completedTaskIds || [];
+          if ([split(d.tasks, done), split(d.baseTasks, done)].some(Boolean)) await DB.put('dayInstances', d);
+        }
+      }
     } }
   ];
 

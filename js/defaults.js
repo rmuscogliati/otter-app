@@ -21,14 +21,18 @@ const Defaults = (() => {
   // Accelerated German plan (B1 → B2/C1, speaking and writing first, about 19 h 15 a week):
   // every day Anki, ChatGPT speaking, writing and LingQ; Goethe lesson Tuesday 18:00–19:30.
   // Per day: [speaking min, writing min, resources title, resources detail, LingQ title].
+  // Homework blocks per day: [key, title, minutes, note]. Goethe exercises every day except Tuesday
+  // (the lesson); the grammar book only at weekends; the short story on Wednesday and Sunday.
+  const STORY = ['story', 'Short story', 15, 'Retell the story in your next speaking session.'];
+  const GRAMMAR = (min) => ['gram', 'Grammar book', min, 'Next section; add mistakes that keep coming back to the Mistakes log.'];
   const german = {
-    0: [30, 30, 'Goethe exercises + short story', '30 min Goethe exercises, then 25 min short story. Retell the story in your next speaking session.', 'LingQ: favourite content'],
-    1: [25, 25, 'Goethe exercises', '', 'LingQ: news + audio'],
-    2: [20, 20, '', '', 'LingQ: video / audio'],
-    3: [25, 25, 'Grammar book + short story', '20 min grammar book, then 15 min short story. Retell the story in your next speaking session.', 'LingQ: news + audio'],
-    4: [25, 25, 'Grammar book: recurring errors', 'Focus on the errors that keep coming back', 'LingQ: video / audio'],
-    5: [25, 25, 'Goethe exercises: difficult tasks', 'Review the tasks you found hard', 'LingQ: news + audio'],
-    6: [30, 30, 'Goethe exercises: exam skills', 'Rotate the exam skills (reading, listening, writing, speaking)', 'LingQ: video / audio']
+    0: [30, 30, [['res', 'Goethe exercises', 20, ''], GRAMMAR(20), STORY], 'LingQ: favourite content'],
+    1: [25, 25, [['res', 'Goethe exercises', 35, '']], 'LingQ: news + audio'],
+    2: [20, 20, [], 'LingQ: video / audio'],
+    3: [25, 25, [['res', 'Goethe exercises', 20, ''], STORY], 'LingQ: news + audio'],
+    4: [25, 25, [['res', 'Goethe exercises: recurring errors', 35, 'Focus on the mistakes that keep coming back.']], 'LingQ: video / audio'],
+    5: [25, 25, [['res', 'Goethe exercises: difficult tasks', 35, 'Review the tasks you found hard.']], 'LingQ: news + audio'],
+    6: [30, 30, [['res', 'Goethe exercises: exam skills', 30, 'Rotate the exam skills (reading, listening, writing, speaking).'], GRAMMAR(25)], 'LingQ: video / audio']
   };
   const SPEAK = 'ChatGPT Voice: "Speak German with me at B1-B2 level. Ask one question at a time. Let me finish, then correct my three main errors and ask me to repeat the corrected sentences." End by retelling the topic without notes.';
   const WRITE = 'About half writing, half correcting and rewriting: a short email, an opinion or a Goethe task.';
@@ -44,20 +48,18 @@ const Defaults = (() => {
   };
   // The German study block (Anki → speaking → break → writing → break → [resources] → LingQ) from a start time.
   function germanBlock(p, dw, start) {
-    const [sp, wr, res, resDesc, lq] = german[dw];
+    const [sp, wr, homework, lq] = german[dw];
     const out = [];
     let m = U.toMin(start);
     const add = (key, mins, title, desc, areaId, o) => { out.push(task(p + key, U.fromMin(m), U.fromMin(m + mins), title, desc, areaId, o)); m += mins; };
-    // The Goethe / grammar homework is the most demanding part, so it comes first while you are fresh.
-    if (res) {
-      add('res', dw === 0 || dw === 6 ? 55 : 35, res, `First, while you're fresh. ${resDesc}`.trim(), 'a6', { xp: 15 });
-      add('brk2', 10, 'Break', '', null, { info: true, tag: 'downtime' });
-    }
+    // The homework (Goethe exercises, grammar book, short story) is the most demanding part: it comes first.
+    homework.forEach(([key, title, mins, note], i) => add(key, mins, title, (i === 0 ? `First, while you're fresh. ${note}` : note).trim(), 'a6', { xp: 15 }));
+    if (homework.length) add('brk2', 10, 'Break', '', null, { info: true, tag: 'downtime' });
     add('anki', 45, 'Anki', ANKI, 'a6', { core: true, xp: 15 });
     add('speak', sp, `Speaking (${sp} min)`, SPEAK, 'a6', { xp: 15, tag: 'speaking' });
     add('brk1', dw === 0 || dw === 6 ? 10 : 5, 'Break', '', null, { info: true, tag: 'downtime' });
     add('write', wr, `Writing (${wr} min)`, WRITE, 'a6', { xp: 15 });
-    if (!res) add('brk2', 5, 'Break', '', null, { info: true, tag: 'downtime' });
+    if (!homework.length) add('brk2', 5, 'Break', '', null, { info: true, tag: 'downtime' });
     add('lingq', 20, lq, LINGQ, 'a6', { xp: 10 });
     return out;
   }
