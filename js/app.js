@@ -1,7 +1,7 @@
 // ======= app.js — start-up, shared state and the always-visible chrome =======
 
 const App = {
-  VERSION: 'v23 · 12 Oct 2026', // shown under More; keep in step with VERSION in sw.js
+  VERSION: 'v24 · 12 Oct 2026', // shown under More; keep in step with VERSION in sw.js
   PRIVATE_FILE_VERSION: '2026-10-11b', // newest otter-private-data.json; More asks you to add it while yours is older
   settings: null, areas: [], modes: [], templates: [], weekPlans: [], shifts: [], patterns: [],
   streaks: null, cache: {}, date: U.todayStr(), todayMode: 'list',

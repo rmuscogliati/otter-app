@@ -29,7 +29,7 @@ const Mascot = (() => {
         inner = `<circle cx="${lx}" cy="${ly}" r="${r}" fill="${INK}"/><circle cx="${rx}" cy="${ry}" r="${r}" fill="${INK}"/>
                  <circle cx="${lx + 1.3}" cy="${ly - 1.4}" r="1.3" fill="#fff"/><circle cx="${rx + 1.3}" cy="${ry - 1.4}" r="1.3" fill="#fff"/>`;
     }
-    return `${ringHtml}<g class="m-eyes">${inner}</g>`;
+    return `${ringHtml}<g class="m-look"><g class="m-eyes">${inner}</g></g>`;
   }
   function mouth(style, x, y) {
     switch (style) {
@@ -226,11 +226,11 @@ const Mascot = (() => {
         <rect x="54" y="74" width="12" height="5" rx="2" fill="#868E96"/><path d="M52 86 L68 86 M52 91 L68 91 M52 96 L62 96" stroke="#ADB5BD" stroke-width="1.6"/><path d="M52 100 l3 3 5 -6" stroke="#2F9E44" stroke-width="2" fill="none"/>`;
       case 'clapper': return `<rect x="44" y="84" width="32" height="20" rx="2" fill="#212529"/><path d="M44 78 L76 72 L77 78 L45 84 Z" fill="#212529"/>
         <path d="M50 77 L54 82 M58 75.5 L62 80.5 M66 74 L70 79" stroke="#FFF" stroke-width="2.5"/><path d="M48 90 L72 90 M48 96 L66 96" stroke="#FFF" stroke-width="1.2" opacity=".7"/>`;
-      case 'torch': return `<path d="M86 66 L100 52" stroke="#FFE066" stroke-width="16" opacity=".35" stroke-linecap="round"/>
+      case 'torch': return `<path class="m-beam" d="M86 66 L100 52" stroke="#FFE066" stroke-width="16" opacity=".35" stroke-linecap="round"/>
         <rect x="80" y="70" width="7" height="16" rx="2" transform="rotate(-40 83 78)" fill="#495057"/><circle cx="88" cy="68" r="3.5" fill="#FFE066"/>`;
       case 'pebble': return `<ellipse cx="60" cy="88" rx="8" ry="6" fill="#ADB5BD" stroke="#868E96" stroke-width="1.5"/><ellipse cx="57.5" cy="86" rx="2.5" ry="1.4" fill="#E9ECEF"/>`;
-      case 'water': return `<path d="M-6 100 Q9 94 24 100 T54 100 T84 100 T114 100 T144 100 L144 126 L-6 126 Z" fill="#74C0FC" opacity=".5"/>
-        <path d="M-6 107 Q9 101 24 107 T54 107 T84 107 T114 107 T144 107 L144 126 L-6 126 Z" fill="#4DABF7" opacity=".45"/>`;
+      case 'water': return `<path class="m-wave1" d="M-6 100 Q9 94 24 100 T54 100 T84 100 T114 100 T144 100 L144 126 L-6 126 Z" fill="#74C0FC" opacity=".5"/>
+        <path class="m-wave2" d="M-6 107 Q9 101 24 107 T54 107 T84 107 T114 107 T144 107 L144 126 L-6 126 Z" fill="#4DABF7" opacity=".45"/>`;
       default: return '';
     }
   }
@@ -253,15 +253,59 @@ const Mascot = (() => {
     const parts = k.draw(eyes(eyeStyle, k.eyeL, k.eyeR, 4, k.ring), mouth(mouthStyle, k.mouth[0], k.mouth[1]));
     let pouch = '';
     for (let i = 0; i < Math.min(2, pebbles); i++) pouch += `<ellipse cx="${28 + i * 8}" cy="${100 - i * 2}" rx="4.5" ry="3.4" fill="#ADB5BD" stroke="#868E96" stroke-width="1"/>`;
-    const extras = state === 'sleepy' ? `<g class="m-zzz"><text x="88" y="24" font-size="11" font-weight="800" fill="#748FFC">z</text><text x="97" y="13" font-size="14" font-weight="800" fill="#748FFC">Z</text></g>`
-      : (state === 'celebrate' || state === 'big') ? `<g class="m-spark"><path d="M14 30 l3 -7 3 7 7 3 -7 3 -3 7 -3 -7 -7 -3z" fill="#FFD43B"/><path d="M100 22 l2 -5 2 5 5 2 -5 2 -2 5 -2 -5 -5 -2z" fill="#FF8787"/><circle cx="104" cy="44" r="2.5" fill="#74C0FC"/><circle cx="18" cy="52" r="2" fill="#B197FC"/></g>`
+    const extras = state === 'sleepy' ? `<g class="m-zzz"><text class="m-z1" x="88" y="24" font-size="11" font-weight="800" fill="#748FFC">z</text><text class="m-z2" x="97" y="13" font-size="14" font-weight="800" fill="#748FFC">Z</text></g>`
+      : (state === 'celebrate' || state === 'big') ? `<g class="m-spark"><path class="m-s1" d="M14 30 l3 -7 3 7 7 3 -7 3 -3 7 -3 -7 -7 -3z" fill="#FFD43B"/><path class="m-s2" d="M100 22 l2 -5 2 5 5 2 -5 2 -2 5 -2 -5 -5 -2z" fill="#FF8787"/><circle class="m-s3" cx="104" cy="44" r="2.5" fill="#74C0FC"/><circle class="m-s4" cx="18" cy="52" r="2" fill="#B197FC"/></g>`
       : state === 'hopeful' ? `<g class="m-heart"><path d="M96 30 c0 -4 6 -4 6 0 c0 -4 6 -4 6 0 c0 4 -6 7 -6 9 c0 -2 -6 -5 -6 -9z" fill="#FF8787"/></g>` : '';
+    // Every arm gets an inner layer for waves and stretches, on top of the state's pose.
+    const wrapArm = (a) => String(a).replace(/^(\s*<g class="m-arm m-arm-[lr]" style="transform-origin:([\d.]+px [\d.]+px)">)([\s\S]*)<\/g>\s*$/, '$1<g class="m-arm-in" style="transform-origin:$2">$3</g></g>');
     const vb = face ? '20 4 80 80' : (state === 'float' ? '-6 -6 132 132' : '0 0 120 120');
-    return `<svg class="mascot m-${kind} st-${state} ${face ? 'm-face' : ''} ${cls}" viewBox="${vb}" width="${size}" height="${size}" role="img" aria-label="${U.esc(title || k.name)}">
-      <g class="m-all">${parts.back}${parts.body}${L.body}${L.neck}${pouch}${L.prop}${parts.armL}${parts.armR}${L.over}<g class="m-head">${parts.head}</g>${L.top}${L.face}</g>${L.front}${extras}</svg>`;
+    return `<svg class="mascot m-${kind} st-${state} ${face ? 'm-face' : ''} ${cls}" style="--d:-${(Math.random() * 6).toFixed(2)}s" viewBox="${vb}" width="${size}" height="${size}" role="img" aria-label="${U.esc(title || k.name)}">
+      <g class="m-act"><g class="m-all">${parts.back}${parts.body}${L.body}${L.neck}${pouch}${L.prop}${wrapArm(parts.armL)}${wrapArm(parts.armR)}${L.over}<g class="m-head"><g class="m-head-in">${parts.head}${L.top}${L.face}</g></g></g></g>${L.front}${extras}</svg>`;
   }
 
   const AREA_PROPS = { a1: ['dumbbell', 'headband'], a2: ['labcoat', 'goggles', 'flask'], a3: ['scrubs', 'stethoscope'], a4: ['textbook'], a5: ['camera'], a6: ['book'] };
-  return { svg, KINDS, AREA_PROPS, kinds: Object.keys(KINDS) };
+  // ---------- life: little actions every few seconds, and a reaction when you tap a character ----------
+  // An action is a class on the <svg> (act-wave, act-hop…) that animates its own layer, so it never cuts
+  // off the breathing or dancing underneath. Off when Reduce Motion or Settings > Animations says so.
+  const ACTS = { wave: 1700, hop: 900, stretch: 1600, look: 2000, nod: 1100, wiggle: 900, tail: 1800, love: 1300 };
+  const BY_STATE = { idle: ['wave', 'hop', 'stretch', 'look', 'nod', 'wiggle', 'tail'], hopeful: ['hop', 'look', 'nod', 'wiggle'],
+    night: ['look', 'nod', 'wave'], celebrate: ['look', 'wiggle', 'tail'], float: ['look', 'tail'], tired: ['look', 'nod'] };
+  const TAP = ['love', 'wiggle', 'hop', 'wave', 'love'];
+  const motionOn = () => !document.body.classList.contains('anim-off') && !document.body.classList.contains('anim-reduced')
+    && !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const stateOf = (el) => ((el.getAttribute('class') || '').match(/\bst-(\w+)/) || [])[1] || 'idle';
+  const pick = (list) => list[Math.floor(Math.random() * list.length)];
+  function play(el, act) {
+    if (!el || !ACTS[act] || el.dataset.busy || !motionOn()) return;
+    el.dataset.busy = '1';
+    if (act === 'love') {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'm-pop-heart');
+      g.innerHTML = '<path d="M53 8 c0 -5 7 -5 7 0 c0 -5 7 -5 7 0 c0 5 -7 9 -7 12 c0 -3 -7 -7 -7 -12z" fill="#FF6B8B"/>';
+      el.appendChild(g);
+      setTimeout(() => g.remove(), ACTS.love);
+    }
+    el.classList.add(`act-${act}`);
+    setTimeout(() => { el.classList.remove(`act-${act}`); delete el.dataset.busy; }, ACTS[act] + 60);
+  }
+  const lively = (el) => !el.classList.contains('m-face') && !el.classList.contains('m-static');
+  function onScreen(el) { const r = el.getBoundingClientRect(); return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight; }
+  function tick() {
+    if (!document.hidden && motionOn()) {
+      const el = pick([...document.querySelectorAll('svg.mascot')].filter(e => lively(e) && onScreen(e)));
+      const acts = el && BY_STATE[stateOf(el)];
+      if (acts) play(el, pick(acts));
+    }
+    setTimeout(tick, 3500 + Math.random() * 5000);
+  }
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest && e.target.closest('svg.mascot');
+    if (!el || !lively(el) || e.target.closest('button, a')) return;
+    play(el, stateOf(el) === 'sleepy' ? 'love' : pick(TAP));
+    if (window.U && U.vibrate) U.vibrate(8);
+  });
+  setTimeout(tick, 2500);
+
+  return { svg, play, KINDS, AREA_PROPS, kinds: Object.keys(KINDS) };
 })();
 window.Mascot = Mascot;

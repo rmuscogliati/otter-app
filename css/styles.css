@@ -335,34 +335,110 @@ input[type=color] { width: 100%; height: 46px; border: 2px solid var(--line); bo
 .mascot .m-line { fill: none; stroke: #24160F; stroke-width: 2.2; stroke-linecap: round; }
 .mascot .m-lid { fill: var(--lid); }
 .mascot .m-cheek { fill: var(--cheek); opacity: .55; }
-.mascot .m-arm { transition: transform .3s ease; }
-.mascot .m-all { transform-origin: 60px 112px; }
+/* ---- Mascot motion ----
+   Layers (outer → inner), so moves stack instead of interrupting each other:
+   .m-act    one-off actions (wave, hop, stretch…) added by Mascot.play()
+   .m-all    the state's loop (breathing, celebrating, dancing…)
+   .m-head / .m-head-in, .m-arm / .m-arm-in, .m-look / .m-eyes, .m-tail
+   Only transform and opacity are animated (smooth on iPhone). --d gives each character its own rhythm. */
+.mascot .m-act, .mascot .m-all { transform-origin: 60px 112px; }
+.mascot .m-head, .mascot .m-head-in { transform-origin: 60px 70px; }
+.mascot .m-arm { transition: transform .45s cubic-bezier(.34, 1.4, .64, 1); }
 .mascot .m-eyes { transform-box: fill-box; transform-origin: center; }
 .mascot .m-tail { transform-box: fill-box; transform-origin: 0% 50%; }
-.st-idle .m-all, .st-night .m-all { animation: m-bob 3.6s ease-in-out infinite; }
-.st-idle .m-eyes, .st-night .m-eyes, .st-hopeful .m-eyes { animation: m-blink 5s infinite; }
-.st-idle .m-tail, .st-hopeful .m-tail { animation: m-wag 3.2s ease-in-out infinite; }
-.st-celebrate .m-all { animation: m-hop .55s ease-out 3; }
+.mascot .m-z1, .mascot .m-z2, .mascot .m-s1, .mascot .m-s2, .mascot .m-s3, .mascot .m-s4, .mascot .m-heart { transform-box: fill-box; transform-origin: center; }
+
+/* Idle life: breathing, blinking, glancing, a head tilt now and then, arms and tail moving gently */
+.st-idle .m-all, .st-night .m-all, .st-hopeful .m-all { animation: m-breathe-bob 4.2s ease-in-out var(--d, 0s) infinite; }
+.st-idle .m-eyes, .st-night .m-eyes, .st-hopeful .m-eyes, .st-celebrate .m-eyes { animation: m-blink 5.5s ease-in-out var(--d, 0s) infinite; }
+.st-idle .m-look, .st-night .m-look { animation: m-glance 11s ease-in-out var(--d, 0s) infinite; }
+.st-idle .m-head, .st-hopeful .m-head { animation: m-tilt 9s ease-in-out var(--d, 0s) infinite; }
+.st-idle .m-arm-l .m-arm-in, .st-night .m-arm-l .m-arm-in { animation: m-sway 4.2s ease-in-out var(--d, 0s) infinite; }
+.st-idle .m-arm-r .m-arm-in, .st-night .m-arm-r .m-arm-in { animation: m-sway 4.2s ease-in-out calc(var(--d, 0s) - 2.1s) infinite; }
+.st-idle .m-tail, .st-hopeful .m-tail, .st-celebrate .m-tail, .st-float .m-tail { animation: m-wag 3.4s ease-in-out var(--d, 0s) infinite; }
+
+/* Celebrate (a task ticked): springy jumps with squash and stretch, arms up and waving */
+.st-celebrate .m-all { animation: m-jump .9s cubic-bezier(.3, .7, .4, 1) 2; }
 .st-celebrate .m-arm-l { transform: rotate(140deg); } .st-celebrate .m-arm-r { transform: rotate(-140deg); }
-.st-big .m-all { animation: m-cheer 1.4s ease-in-out infinite; }
+.st-celebrate .m-arm-l .m-arm-in { animation: m-pump .5s ease-in-out infinite alternate; }
+.st-celebrate .m-arm-r .m-arm-in { animation: m-pump .5s ease-in-out -.25s infinite alternate; }
+.st-celebrate .m-head { animation: m-tilt 2.4s ease-in-out infinite; }
+
+/* Big (day complete, milestones): a happy dance */
+.st-big .m-all { animation: m-dance 1.6s ease-in-out infinite; }
 .st-big .m-arm-l { transform: rotate(150deg); } .st-big .m-arm-r { transform: rotate(-150deg); }
-.st-sleepy .m-all { animation: m-breathe 4.5s ease-in-out infinite; }
-.st-sleepy .m-zzz { animation: m-float-up 3s ease-in-out infinite; }
+.st-big .m-arm-l .m-arm-in { animation: m-pump .4s ease-in-out infinite alternate; }
+.st-big .m-arm-r .m-arm-in { animation: m-pump .4s ease-in-out -.2s infinite alternate; }
+.st-big .m-head { animation: m-headbob .8s ease-in-out infinite; }
+.st-big .m-tail { animation: m-wag 0.8s ease-in-out infinite; }
+
+/* Sleepy, tired, hopeful, floating, night */
+.st-sleepy .m-all { animation: m-breathe 4.5s ease-in-out var(--d, 0s) infinite; }
+.st-sleepy .m-head { animation: m-doze 6s ease-in-out var(--d, 0s) infinite; }
+.st-sleepy .m-z1 { animation: m-zfloat 3s ease-out infinite; }
+.st-sleepy .m-z2 { animation: m-zfloat 3s ease-out 1.5s infinite; opacity: 0; }
 .st-hopeful .m-arm-r { transform: rotate(-115deg); }
-.st-hopeful .m-all { animation: m-bob 2.6s ease-in-out infinite; }
-.st-tired .m-all { animation: m-breathe 5s ease-in-out infinite; }
+.st-hopeful .m-arm-r .m-arm-in { animation: m-beckon 1.6s ease-in-out infinite; }
+.st-hopeful .m-heart { animation: m-heartbeat 1.4s ease-in-out infinite; }
+.st-tired .m-all { animation: m-breathe 5s ease-in-out var(--d, 0s) infinite; }
+.st-tired .m-head { animation: m-doze 7s ease-in-out var(--d, 0s) infinite; }
 .st-float .m-all { transform: rotate(-72deg) translate(-12px, -8px); animation: m-float 4s ease-in-out infinite; }
-.m-spark { animation: m-twinkle 1.2s ease-in-out infinite; transform-origin: center; }
-.m-face .m-all { animation: none !important; }
-@keyframes m-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.st-float .m-wave1 { animation: m-water 5s ease-in-out infinite; }
+.st-float .m-wave2 { animation: m-water 5s ease-in-out -2.5s infinite reverse; }
+.st-night .m-beam { animation: m-flicker 3.2s ease-in-out infinite; }
+.m-spark .m-s1, .m-spark .m-s2, .m-spark .m-s3, .m-spark .m-s4 { animation: m-twinkle 1.4s ease-in-out infinite; }
+.m-spark .m-s2 { animation-delay: -.35s; } .m-spark .m-s3 { animation-delay: -.7s; } .m-spark .m-s4 { animation-delay: -1.05s; }
+
+/* One-off actions (Mascot.play): every few seconds at random, and when you tap a character */
+.act-wave .m-arm-r .m-arm-in { animation: a-wave 1.7s ease-in-out; }
+.act-hop .m-act { animation: m-jump .9s cubic-bezier(.3, .7, .4, 1); }
+.act-stretch .m-act { animation: a-stretch 1.6s ease-in-out; }
+.act-stretch .m-arm-l .m-arm-in { animation: a-reach-l 1.6s ease-in-out; }
+.act-stretch .m-arm-r .m-arm-in { animation: a-reach-r 1.6s ease-in-out; }
+.act-look .m-look { animation: a-look 2s ease-in-out; }
+.act-nod .m-head-in { animation: a-nod 1.1s ease-in-out; }
+.act-wiggle .m-act { animation: a-wiggle .9s ease-in-out; }
+.act-tail .m-tail { animation: m-wag .45s ease-in-out 4; }
+.act-love .m-act { animation: a-squish .7s cubic-bezier(.34, 1.56, .64, 1); }
+.act-pop .m-act, .task.pop .mascot .m-act { animation: a-pop .6s cubic-bezier(.34, 1.56, .64, 1); }
+.mascot .m-pop-heart { transform-box: fill-box; transform-origin: center; animation: a-heart-up 1.3s ease-out forwards; }
+.mascot-slot .mascot:not(.m-static):not(.m-face) { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.celebrate-card .mascot { animation: a-enter .7s cubic-bezier(.34, 1.56, .64, 1) both; }
+.m-face .m-all, .m-face .m-head, .m-face .m-look, .m-face .m-arm-in { animation: none !important; }
+
+@keyframes m-breathe-bob { 0%, 100% { transform: translateY(0) scale(1, 1); } 50% { transform: translateY(-2.5px) scale(1.012, .992); } }
 @keyframes m-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.025, .985); } }
-@keyframes m-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
-@keyframes m-wag { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(9deg); } }
-@keyframes m-hop { 0% { transform: translateY(0); } 40% { transform: translateY(-12px) rotate(-4deg); } 100% { transform: translateY(0); } }
-@keyframes m-cheer { 0%, 50%, 100% { transform: translateY(0) rotate(0); } 25% { transform: translateY(-9px) rotate(-5deg); } 75% { transform: translateY(-9px) rotate(5deg); } }
+@keyframes m-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.08); } }
+@keyframes m-glance { 0%, 38%, 62%, 100% { transform: translateX(0); } 44%, 50% { transform: translateX(-2.2px); } 54%, 58% { transform: translateX(2.2px); } }
+@keyframes m-tilt { 0%, 55%, 100% { transform: rotate(0); } 65%, 75% { transform: rotate(-5deg); } 85% { transform: rotate(2deg); } }
+@keyframes m-sway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(4deg); } }
+@keyframes m-wag { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(10deg); } }
+@keyframes m-jump { 0% { transform: translateY(0) scale(1, 1); } 15% { transform: translateY(0) scale(1.08, .92); } 45% { transform: translateY(-14px) scale(.95, 1.06); }
+  70% { transform: translateY(0) scale(1.06, .94); } 85% { transform: translateY(-2px) scale(.99, 1.01); } 100% { transform: translateY(0) scale(1, 1); } }
+@keyframes m-pump { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+@keyframes m-dance { 0%, 50%, 100% { transform: translate(0, 0) rotate(0) scale(1, 1); } 12% { transform: translate(0, 0) scale(1.05, .95); }
+  25% { transform: translate(-3px, -9px) rotate(-6deg) scale(.97, 1.03); } 62% { transform: translate(0, 0) scale(1.05, .95); } 75% { transform: translate(3px, -9px) rotate(6deg) scale(.97, 1.03); } }
+@keyframes m-headbob { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes m-doze { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(5deg) translateY(1px); } }
+@keyframes m-zfloat { 0% { transform: translate(0, 4px) scale(.6); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(6px, -10px) scale(1.1); opacity: 0; } }
+@keyframes m-beckon { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-14deg); } }
+@keyframes m-heartbeat { 0%, 40%, 100% { transform: scale(1); } 15% { transform: scale(1.22); } 28% { transform: scale(.95); } }
 @keyframes m-float { 0%, 100% { transform: rotate(-72deg) translate(-12px, -8px); } 50% { transform: rotate(-68deg) translate(-12px, -12px); } }
-@keyframes m-float-up { 0%, 100% { transform: translateY(0); opacity: 1; } 50% { transform: translateY(-4px); opacity: .6; } }
-@keyframes m-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+@keyframes m-water { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
+@keyframes m-flicker { 0%, 100% { opacity: .35; } 30% { opacity: .5; } 55% { opacity: .28; } 80% { opacity: .45; } }
+@keyframes m-twinkle { 0%, 100% { opacity: 1; transform: scale(1) rotate(0); } 50% { opacity: .35; transform: scale(.7) rotate(20deg); } }
+@keyframes a-wave { 0% { transform: rotate(0); } 18% { transform: rotate(-150deg); } 32% { transform: rotate(-122deg); } 46% { transform: rotate(-152deg); }
+  60% { transform: rotate(-122deg); } 74% { transform: rotate(-148deg); } 100% { transform: rotate(0); } }
+@keyframes a-stretch { 0%, 100% { transform: scale(1, 1); } 40%, 60% { transform: scale(.96, 1.07); } 75% { transform: scale(1.03, .97); } }
+@keyframes a-reach-l { 0%, 100% { transform: rotate(0); } 40%, 60% { transform: rotate(155deg); } }
+@keyframes a-reach-r { 0%, 100% { transform: rotate(0); } 40%, 60% { transform: rotate(-155deg); } }
+@keyframes a-look { 0%, 100% { transform: translateX(0); } 20%, 40% { transform: translateX(-2.6px); } 60%, 80% { transform: translateX(2.6px); } }
+@keyframes a-nod { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(7deg); } 50% { transform: rotate(-2deg); } 75% { transform: rotate(5deg); } }
+@keyframes a-wiggle { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-5deg); } 30% { transform: rotate(5deg); } 45% { transform: rotate(-4deg); } 60% { transform: rotate(3deg); } 75% { transform: rotate(-1.5deg); } }
+@keyframes a-squish { 0%, 100% { transform: scale(1, 1); } 30% { transform: scale(1.1, .9); } 60% { transform: scale(.96, 1.05); } }
+@keyframes a-pop { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.28); } }
+@keyframes a-heart-up { 0% { transform: translateY(6px) scale(.4); opacity: 0; } 25% { transform: translateY(0) scale(1.15); opacity: 1; } 100% { transform: translateY(-16px) scale(.9); opacity: 0; } }
+@keyframes a-enter { 0% { transform: scale(.5) translateY(20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
 
 /* Reduce Motion: the iPhone setting, or Settings > Animations */
 @media (prefers-reduced-motion: reduce) {
@@ -381,7 +457,7 @@ body.no-mascots .mascot-slot { display: none !important; }
   .flame { font-size: 2.8rem; } .streak-num { font-size: 2.2rem; }
   .bar-row { grid-template-columns: 76px 1fr 48px; }
 }
-.m-static .m-all, .m-static .m-eyes, .m-static .m-tail { animation: none !important; }
+.m-static .m-act, .m-static .m-all, .m-static .m-eyes, .m-static .m-look, .m-static .m-head, .m-static .m-head-in, .m-static .m-arm-in, .m-static .m-tail { animation: none !important; }
 .task-time, .task-title, .task-desc, .row-title, .row-sub { display: block; }
 .tl-block.short { padding: 1px 6px; display: flex; gap: 6px; align-items: center; white-space: nowrap; }
 .tl-block.short b { display: inline; font-size: .72rem; overflow: hidden; text-overflow: ellipsis; }
