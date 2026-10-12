@@ -331,6 +331,45 @@ const Migrate = (() => {
         if (d.date <= today || !prefix[dw] || d.templateId !== `tpl_d${dw}`) continue;
         if (fit(d.baseTasks || d.tasks, dw, d.date)) await DB.put('dayInstances', d);
       }
+    } },
+    { id: 'v10_goetheFirst', run: async (s) => {
+      // The Goethe / grammar homework moves to the start of each German session (fresh brain), in the
+      // templates and in today's and future planned days. A block moves only if it still has its planned
+      // time and is not ticked, so your own changes stay. Also: Otto's backflip became a happy dance.
+      const today = U.todayStr();
+      const days = await DB.getAll('dayInstances');
+      const german = /_(anki|speak|brk1|write|brk2|res|lingq)$/;
+      for (const fresh of Defaults.dayTemplates.filter(t => /^tpl_d\d$/.test(t.id))) {
+        const tpl = await DB.get('templates', fresh.id);
+        if (!tpl) continue;
+        const moves = {};
+        for (const nt of fresh.tasks) {
+          const ot = german.test(nt.srcId) && tpl.tasks.find(t => t.srcId === nt.srcId);
+          if (ot && (ot.time !== nt.time || ot.endTime !== nt.endTime || ot.desc !== nt.desc)) moves[nt.srcId] = { from: [ot.time, ot.endTime], to: nt };
+        }
+        if (!Object.keys(moves).length) continue;
+        const apply = (list, done) => {
+          let n = 0;
+          for (const t of list || []) {
+            const mv = moves[t.srcId];
+            if (!mv || done.includes(t.id) || t.time !== mv.from[0] || t.endTime !== mv.from[1]) continue;
+            t.time = mv.to.time; t.endTime = mv.to.endTime;
+            if (t.srcId.endsWith('_res')) t.desc = mv.to.desc;
+            n++;
+          }
+          if (n) list.sort(U.by(t => t.time));
+          return n;
+        };
+        if (apply(tpl.tasks, [])) await Repo.put('templates', tpl);
+        for (const d of days) {
+          if (d.date < today || d.templateId !== fresh.id) continue;
+          const done = d.completedTaskIds || [];
+          if (apply(d.tasks, done) + apply(d.baseTasks, done)) await DB.put('dayInstances', d);
+        }
+      }
+      const swap = { "{streak} days. I'm doing a happy flip!": "{streak} days. I'm doing a happy dance!", "Day complete! I'm doing a backflip.": 'Day complete! Time for a happy splash.' };
+      const msgs = s.otter && s.otter.messages;
+      if (msgs) for (const k of Object.keys(msgs)) if (Array.isArray(msgs[k])) msgs[k] = msgs[k].map(m => swap[m] || m);
     } }
   ];
 

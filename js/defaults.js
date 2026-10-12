@@ -48,12 +48,16 @@ const Defaults = (() => {
     const out = [];
     let m = U.toMin(start);
     const add = (key, mins, title, desc, areaId, o) => { out.push(task(p + key, U.fromMin(m), U.fromMin(m + mins), title, desc, areaId, o)); m += mins; };
+    // The Goethe / grammar homework is the most demanding part, so it comes first while you are fresh.
+    if (res) {
+      add('res', dw === 0 || dw === 6 ? 55 : 35, res, `First, while you're fresh. ${resDesc}`.trim(), 'a6', { xp: 15 });
+      add('brk2', 10, 'Break', '', null, { info: true, tag: 'downtime' });
+    }
     add('anki', 45, 'Anki', ANKI, 'a6', { core: true, xp: 15 });
     add('speak', sp, `Speaking (${sp} min)`, SPEAK, 'a6', { xp: 15, tag: 'speaking' });
     add('brk1', dw === 0 || dw === 6 ? 10 : 5, 'Break', '', null, { info: true, tag: 'downtime' });
     add('write', wr, `Writing (${wr} min)`, WRITE, 'a6', { xp: 15 });
-    add('brk2', dw === 2 ? 5 : 10, 'Break', '', null, { info: true, tag: 'downtime' });
-    if (res) add('res', dw === 0 || dw === 6 ? 55 : 35, res, resDesc, 'a6', { xp: 15 });
+    if (!res) add('brk2', 5, 'Break', '', null, { info: true, tag: 'downtime' });
     add('lingq', 20, lq, LINGQ, 'a6', { xp: 10 });
     return out;
   }
@@ -211,9 +215,9 @@ const Defaults = (() => {
   const otterMessages = {
     morning: ['Morning! One small step at a time.', 'New day, fresh water. Let\'s swim.', 'Coffee first, then we conquer.'],
     normal: ['You\'ve got this. I\'ll be right here.', 'Tick one thing and the rest gets easier.', 'Steady paddling wins the river.'],
-    streak: ['{streak} days in a row! Look at you go.', 'Your streak is {streak} days strong.', '{streak} days. I\'m doing a happy flip!'],
+    streak: ['{streak} days in a row! Look at you go.', 'Your streak is {streak} days strong.', '{streak} days. I\'m doing a happy dance!'],
     atRisk: ['Still time for {task}. Want to give it a go?', 'Just {task} left. Small and doable!', 'One more splash: {task}.'],
-    complete: ['All done! Time to float and relax.', 'Day complete! I\'m doing a backflip.', 'Everything ticked. Proud of you.'],
+    complete: ['All done! Time to float and relax.', 'Day complete! Time for a happy splash.', 'Everything ticked. Proud of you.'],
     minimum: ['Long day? Minimum routine still counts.', 'Rest is part of the plan. Five minutes is plenty.', 'Gentle day. I\'ve got the blanket ready.'],
     night: ['Night shift? Your streak is safe. Look after yourself.', 'Torch on, streak protected. Eat something good.', 'Sleep when you can. I\'ll guard the streak.'],
     deadline: ['Heads-up: {deadline} is {days}.', '{deadline} is coming up {days}. Want to plan a slot?'],

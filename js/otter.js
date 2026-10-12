@@ -101,7 +101,7 @@ const Otto = {
     });
   },
   async dayComplete() {
-    await Otto.celebrate({ title: 'Day complete!', sub: `${Otto.name()} does a backflip in the water.`, big: false, button: 'Yay!' });
+    await Otto.celebrate({ title: 'Day complete!', sub: `${Otto.name()} is doing a happy dance. Proud of you!`, big: false, button: 'Yay!' });
   },
   async milestones() {
     const pend = Streaks.pendingMilestones();
