@@ -155,11 +155,35 @@ const Rota = {
     return out;
   },
 
+  // ---------- a pasted rota code: "ROTA 2026-01-05 SSOLL…", one letter per day (M = NN) ----------
+  parseCode(text) {
+    const m = String(text || '').toUpperCase().match(/ROTA\s+(\d{4}-\d{2}-\d{2})\s+([SLNMEO\s]+)/);
+    if (!m) return null;
+    const letters = m[2].replace(/\s+/g, ''), days = {};
+    if (!letters) return null;
+    [...letters].forEach((c, i) => { days[U.addDays(m[1], i)] = c === 'M' ? 'NN' : c; });
+    return { from: m[1], until: U.addDays(m[1], letters.length - 1), days };
+  },
+  async paste() {
+    const f = await UI.form('Paste your rota code', [{ name: 'text', type: 'textarea', label: 'Code (starts with ROTA)', rows: 6, required: true }], { submit: 'Add rota',
+      validate: (v) => Rota.parseCode(v.text) ? null : 'That does not look like a rota code. It should start with ROTA and a date.' });
+    if (!f) return;
+    const p = Rota.parseCode(f.text);
+    // The same start date replaces that rota; anything else is added beside it.
+    const old = (App.rotas || []).find(r => r.from === p.from);
+    await Repo.put('rota', { ...(old || { id: `rota_${p.from.slice(0, 7).replace('-', '_')}`, label: 'Rota' }), ...p });
+    await App.loadCore();
+    const a = await Rota.apply();
+    await App.changed({ celebrate: false });
+    await UI.confirm(`${Object.keys(p.days).length} days added, ${U.fmtDate(p.from, { year: true })} to ${U.fmtDate(p.until, { year: true })}. ${a.made} planned${a.kept ? `, ${a.kept} you had changed kept with a shift note` : ''}.`, { ok: 'Great', cancel: 'Close', title: 'Rota added' });
+  },
+
   // ---------- screen: see the rota, and change a day after a swap ----------
   render() {
     const today = U.todayStr();
     const r = (App.rotas || []).filter(x => x.until >= today).sort(U.by(x => x.from))[0];
-    if (!r) return `${UI.header('Rota')}${UI.empty('No rota yet. Add your private file under More.', 'ph-calendar-dots')}`;
+    const paste = '<button class="btn btn-primary btn-block" data-act="paste" style="margin-bottom:12px"><i class="ph ph-clipboard-text"></i> Paste rota code</button>';
+    if (!r) return `${UI.header('Rota')}${paste}${UI.empty('No rota yet. Paste your rota code, or add your private file under More.', 'ph-calendar-dots')}`;
     const dates = [];
     for (let d = r.from > today ? r.from : today; d <= r.until; d = U.addDays(d, 1)) dates.push(d);
     const icon = (c) => Rota.isNight(c) ? 'ph-moon' : c === 'L' ? 'ph-clock' : c === 'S' ? 'ph-sun' : 'ph-umbrella';
@@ -168,10 +192,11 @@ const Rota = {
       const head = U.dow(d) === 1 || d === dates[0] ? `<div class="section-title">Week of ${U.fmtDate(U.addDays(d, -((U.dow(d) + 6) % 7)))}</div>` : '';
       return `${head}${UI.row({ icon: icon(c), title: `${U.fmtDate(d)} · ${Rota.CODES[c]}`, cls: 'card', act: 'day', data: { date: d } })}`;
     }).join('');
-    return `${UI.header('Rota')}<p class="muted small" style="margin:0 4px 10px">${U.fmtDate(r.from, { year: true })} to ${U.fmtDate(r.until, { year: true })}. Swapped a shift? Tap the day to change it.</p>${rows}`;
+    return `${UI.header('Rota')}<p class="muted small" style="margin:0 4px 10px">${U.fmtDate(r.from, { year: true })} to ${U.fmtDate(r.until, { year: true })}. Swapped a shift? Tap the day to change it.</p>${rows}${paste}`;
   },
   actions() {
     return {
+      paste: () => Rota.paste(),
       day: async (el) => {
         const d = el.dataset.date, r = Rota.record(d);
         const v = await UI.choose(U.fmtDate(d, { year: true }), Object.entries(Rota.CODES).map(([value, label]) => ({ value, label, icon: value === Rota.code(d) ? 'ph-check-circle' : 'ph-circle' })),

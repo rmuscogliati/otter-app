@@ -114,6 +114,7 @@ const Today = {
       <h2>No plan for ${U.fmtDate(date)} yet</h2>
       <p class="muted small" style="margin:4px 0 10px">${sh ? `Shift planner: ${U.esc(Days.modeById(sh.modeId)?.name || '')}. ` : ''}Choose how to start this day. You can change everything afterwards.</p>
       <div class="choice-list">
+        ${window.Rota && !(App.rotas || []).some(r => r.until >= date) ? '<button class="choice" data-act="go" data-view="rota"><i class="ph ph-calendar-dots"></i><span><b>Add your work rota</b><small>Paste a rota code: every day is then planned for you</small></span></button>' : ''}
         <button class="choice" data-act="plan" data-opt="default"><i class="ph ph-calendar-check"></i><span><b>Default template</b><small>${U.esc(tpl ? tpl.name : 'none set')}</small></span></button>
         <button class="choice" data-act="plan" data-opt="pick"><i class="ph ph-stack"></i><span><b>Another template…</b><small>Normal workday, Day off, On-call, Study day…</small></span></button>
         <button class="choice" data-act="plan" data-opt="blank"><i class="ph ph-file"></i><span><b>Blank day</b><small>Plan all 24 hours yourself</small></span></button>
