@@ -11,11 +11,12 @@ const More = {
     const setup = !pv ? `<button class="banner info" data-act="addPrivate"><i class="ph ph-user-circle-plus lead"></i>
       <span><b>Add your private data</b> — one file: publications, videos, LinkedIn and research ideas</span></button>`
       : pv < App.PRIVATE_FILE_VERSION ? `<button class="banner info" data-act="addPrivate"><i class="ph ph-arrow-circle-down lead"></i>
-      <span><b>New in your private file</b> — add otter-private-data.json again from Google Drive (your MedTwins video ideas). Nothing is added twice.</span></button>` : '';
+      <span><b>New in your private file</b> — add otter-private-data.json again from Google Drive (it has your new rota). Nothing is added twice.</span></button>` : '';
     return `${UI.header('More', { back: false })}${setup}
       <div class="list">
         ${link('inbox', 'ph-tray', 'Inbox', 'Quick captures to triage any time', inbox.length ? `<span class="badge">${inbox.length}</span>` : '')}
         ${link('search', 'ph-magnifying-glass', 'Search', 'Tasks, ideas, cards, logs and notes')}
+        ${link('rota', 'ph-calendar-dots', 'Rota', 'Your shifts; tap a day after a swap')}
         ${link('goals', 'ph-target', 'Goals', 'Quarterly goals → monthly milestones → weekly priorities')}
       </div>
       <div class="section-title">Logs</div>
@@ -58,6 +59,11 @@ const More = {
         if (data.ideasMarkdown) {
           const s = await Research.importText(data.ideasMarkdown, file.name, { quiet: true });
           if (s) lines.push(`${s.added} research idea${s.added === 1 ? '' : 's'} added${s.skipped ? `, ${s.skipped} already there` : ''}${s.failed.length ? ` · ${s.failed.length} could not be read` : ''}`);
+        }
+        await App.loadCore();
+        if (window.Rota && (data.records || []).some(x => x.kind === 'rota')) {
+          const a = await Rota.apply();
+          lines.push(`Rota: ${a.made} days planned${a.kept ? `, ${a.kept} you had changed were kept with a shift note` : ''}`);
         }
         if (data._profileVersion) { App.settings.profileVersion = data._profileVersion; await App.saveSettings(); }
       } else {

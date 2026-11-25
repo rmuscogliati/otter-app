@@ -30,7 +30,7 @@ const Days = {
       const every = Math.max(1, Number(p.every) || 1);
       if (U.diffDays(p.start, date) % every === 0) return { date, modeId: p.modeId, label: p.label, source: 'pattern', patternId: p.id };
     }
-    return null;
+    return window.Rota ? Rota.shiftFor(date) : null;
   },
   // The mode a date would get if it were created now.
   plannedModeId(date) {
@@ -46,7 +46,10 @@ const Days = {
 
   async create(date, option = 'default') {
     let tasks = [], templateId = '';
-    if (option === 'default') {
+    const onRota = option === 'default' && window.Rota && Rota.code(date);
+    if (onRota) {
+      tasks = Rota.tasksFor(date); templateId = (Days.defaultTemplateFor(date) || {}).id || '';
+    } else if (option === 'default') {
       const tpl = Days.defaultTemplateFor(date);
       if (tpl) { tasks = U.clone(tpl.tasks); templateId = tpl.id; }
     } else if (option && option.templateId) {
@@ -65,12 +68,14 @@ const Days = {
     const sh = Days.shiftFor(date);
     const tpl = Days.templateById(templateId);
     const modeId = sh ? sh.modeId : ((tpl && tpl.modeId) || 'm_normal');
-    Days.applyMode(day, modeId, { fromTemplate: tpl });
+    if (onRota) Rota.stamp(day);
+    // Rota days are planned by Rota itself; a single shift you set by hand still swaps the plan.
+    if (sh && sh.source === 'rota') day.modeId = modeId; else if (!onRota || sh) Days.applyMode(day, modeId, { fromTemplate: tpl });
     for (const hook of Days.createHooks) { try { hook(day); } catch (e) { console.error(e); } }
     await DB.put('dayInstances', day);
     // A shift planned in advance on a day with a gym session: move the session to a nearby free day.
     const mode = sh && Days.modeById(modeId);
-    if (mode && mode.protectsStreak && mode.action === 'replace') await Days.moveGymAround(date);
+    if (mode && sh.source !== 'rota' && mode.protectsStreak && mode.action === 'replace') await Days.moveGymAround(date);
     return day;
   },
   createHooks: [], // other modules can add recurring tasks (e.g. the weekly watch-list check)
@@ -236,6 +241,12 @@ const Days = {
     if (!day) { if (Days.shiftFor(date) && U.diffDays(U.todayStr(), date) <= 21) await Days.create(date, 'default'); return; }
     if (day.completedTaskIds.length) return;
     const sh = Days.shiftFor(date);
+    if (sh && sh.source === 'rota') { // back to the rota's own plan after a single-date shift is removed
+      if (day.baseTasks) { day.tasks = day.baseTasks; delete day.baseTasks; }
+      day.modeId = sh.modeId;
+      await Days.save(day);
+      return;
+    }
     const tpl = Days.templateById(day.templateId);
     const modeId = sh ? sh.modeId : ((tpl && tpl.modeId) || 'm_normal');
     if (day.modeId === modeId) return;

@@ -410,6 +410,10 @@ const Migrate = (() => {
       for (const d of await DB.getAll('dayInstances')) {
         if (d.date > today && only.includes(d.templateId) && !d.updatedAt && !(d.completedTaskIds || []).length) await DB.delete('dayInstances', d.date);
       }
+    } },
+    { id: 'v13_rota', run: async () => {
+      // The "Long day" mode used by rota days.
+      if (!(await DB.get('modes', 'm_longday'))) await Repo.put('modes', U.clone(Defaults.modes.find(m => m.id === 'm_longday')));
     } }
   ];
 

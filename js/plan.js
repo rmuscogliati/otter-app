@@ -237,7 +237,7 @@ const Plan = {
         sub: `Every ${p.every} day${p.every > 1 ? 's' : ''} from ${U.fmtDate(p.start)}${p.until ? ` until ${U.fmtDate(p.until)}` : ''} · ${U.esc((Days.modeById(p.modeId) || {}).name || '')}`, act: 'editPattern', data: { id: p.id } })).join('') || UI.empty('No repeating patterns.', 'ph-repeat')}</div>
       <div class="section-title">Next 60 days</div>
       <div class="list">${up.map(s => UI.row({ icon: (Days.modeById(s.modeId) || {}).icon || 'ph-moon', title: `${U.fmtDate(s.date)} · ${U.esc(s.label || (Days.modeById(s.modeId) || {}).name || '')}`,
-        sub: s.source === 'pattern' ? 'From a repeating pattern' : 'Single date · tap to change', act: s.source === 'pattern' ? 'editPattern' : 'editOne', data: { date: s.date, id: s.patternId || '' } })).join('') || UI.empty('No shifts planned.', 'ph-moon')}</div>`;
+        sub: s.source === 'pattern' ? 'From a repeating pattern' : s.source === 'rota' ? 'From your rota · tap to override' : 'Single date · tap to change', act: s.source === 'pattern' ? 'editPattern' : 'editOne', data: { date: s.date, id: s.patternId || '' } })).join('') || UI.empty('No shifts planned.', 'ph-moon')}</div>`;
   },
   shiftsActions() {
     return {

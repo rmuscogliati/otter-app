@@ -170,6 +170,7 @@ const Defaults = (() => {
     { id: 'm_minimum', name: 'Minimum routine', action: 'replace', templateId: 'tpl_minimum', areaId: '', protectsStreak: false, isMinimum: true, quiet: false, nonWorking: false, icon: 'ph-moon' },
     { id: 'm_goethe', name: 'Live Goethe class', action: 'replaceArea', templateId: 'tpl_goethe', areaId: 'a6', protectsStreak: false, isMinimum: false, quiet: false, nonWorking: false, icon: 'ph-chalkboard-teacher' },
     { id: 'm_shortgerman', name: 'Short German (difficult shift)', action: 'replaceArea', templateId: 'tpl_shortgerman', areaId: 'a6', protectsStreak: false, isMinimum: false, quiet: false, nonWorking: false, icon: 'ph-battery-low' },
+    { id: 'm_longday', name: 'Long day', action: 'none', templateId: '', areaId: '', protectsStreak: false, isMinimum: false, quiet: false, nonWorking: false, icon: 'ph-clock' },
     { id: 'm_night', name: 'Night shift / on-call', action: 'replace', templateId: 'tpl_oncall', areaId: '', protectsStreak: true, isMinimum: false, quiet: true, nonWorking: false, icon: 'ph-flashlight' },
     { id: 'm_dayoff', name: 'Day off / weekend', action: 'replace', templateId: 'tpl_dayoff', areaId: '', protectsStreak: false, isMinimum: false, quiet: false, nonWorking: true, icon: 'ph-umbrella' },
     { id: 'm_recovery', name: 'Recovery week', action: 'none', templateId: '', areaId: '', protectsStreak: true, isMinimum: false, quiet: true, nonWorking: false, icon: 'ph-heart' }
@@ -297,6 +298,6 @@ const Defaults = (() => {
   }
 
   return { task, areas, dayTemplates, weekPlans, modes, boards, guidelines, workoutTemplates, oldWorkoutTemplates, gymWeek, studyResources, wardJobTemplates, otterMessages, areaMessages,
-    reviewSteps, specialties, ytTask, canDo, portfolioTargets, medtwins, settings, weekdayTasks, weekendTasks };
+    reviewSteps, specialties, ytTask, germanBlock, canDo, portfolioTargets, medtwins, settings, weekdayTasks, weekendTasks };
 })();
 window.Defaults = Defaults;

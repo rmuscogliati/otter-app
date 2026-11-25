@@ -1,8 +1,8 @@
 // ======= app.js — start-up, shared state and the always-visible chrome =======
 
 const App = {
-  VERSION: 'v26 · 12 Oct 2026', // shown under More; keep in step with VERSION in sw.js
-  PRIVATE_FILE_VERSION: '2026-10-11b', // newest otter-private-data.json; More asks you to add it while yours is older
+  VERSION: 'v27 · 25 Nov 2026', // shown under More; keep in step with VERSION in sw.js
+  PRIVATE_FILE_VERSION: '2026-11-25', // newest otter-private-data.json; More asks you to add it while yours is older
   settings: null, areas: [], modes: [], templates: [], weekPlans: [], shifts: [], patterns: [],
   streaks: null, cache: {}, date: U.todayStr(), todayMode: 'list',
   openHooks: [], // run once after the first screen appears (energy check-in, reminders, milestones)
@@ -16,6 +16,7 @@ const App = {
       App.applyPrefs();
       App.bindChrome();
       await App.recompute();
+      if (window.Rota) await Rota.apply(); // plan the days of the work rota
       if (window.Programme) await Programme.ensureDays(); // plan the days of the current rotation in advance
       App.renderStrip();
       await Nav.go('today', {}, { root: true });
@@ -55,6 +56,7 @@ const App = {
     App.areas = areas.sort(U.by(a => a.order ?? 99));
     App.modes = modes.sort(U.by(m => m.name.toLowerCase()));
     App.templates = templates; App.weekPlans = weekPlans; App.shifts = shifts; App.patterns = patterns;
+    App.rotas = await Repo.all('rota');
   },
   areaById(id) { return App.areas.find(a => a.id === id); },
   visibleAreas() { return App.areas.filter(a => !a.archived); },
